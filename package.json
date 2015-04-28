@@ -1,0 +1,27 @@
+{
+  "name": "tcb-bassline",
+  "version": "0.1.0-alpha",
+  "description": "... Drop! Woo woo woo!",
+  "main": "./lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thecodebureau/bassline.git"
+  },
+  "keywords": [
+    "backbone",
+    "dust"
+  ],
+  "author": "The Code Bureau <info@thecodebureau.com> (https://thecodebureau.com)",
+	"contributors": [
+		"Linus Miller <linus.miller@thecodebureau.com>",
+		"Victor Nilsson <victor.nilsson@thecodebureau.com>"
+	],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thecodebureau/bassline/issues"
+  },
+  "homepage": "https://github.com/thecodebureau/bassline"
+}
