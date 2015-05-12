@@ -15,13 +15,16 @@
     "dust"
   ],
   "author": "The Code Bureau <info@thecodebureau.com> (https://thecodebureau.com)",
-	"contributors": [
-		"Linus Miller <linus.miller@thecodebureau.com>",
-		"Victor Nilsson <victor.nilsson@thecodebureau.com>"
-	],
+  "contributors": [
+    "Linus Miller <linus.miller@thecodebureau.com>",
+    "Victor Nilsson <victor.nilsson@thecodebureau.com>"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/thecodebureau/bassline/issues"
   },
-  "homepage": "https://github.com/thecodebureau/bassline"
+  "homepage": "https://github.com/thecodebureau/bassline",
+  "dependencies": {
+    "dustjs-linkedin": "^2.7.1"
+  }
 }
