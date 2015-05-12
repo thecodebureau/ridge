@@ -1,6 +1,6 @@
 {
   "name": "tcb-bassline",
-  "version": "0.1.0-alpha",
+  "version": "0.1.0",
   "description": "... Drop! Woo woo woo!",
   "main": "./lib/bassline.js",
   "scripts": {
