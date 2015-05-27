@@ -26,6 +26,9 @@
   "homepage": "https://github.com/thecodebureau/bassline",
   "dependencies": {
     "dustjs-linkedin": "^2.7.1",
+    "jquery-ancestors": "^0.1.0",
+    "jquery-jsonify": "^0.1.0",
+    "jquery-valet": "^0.1.0",
     "poirot": "^0.1.0"
   }
 }
