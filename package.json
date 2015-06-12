@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/thecodebureau/ridge",
   "dependencies": {
-    "dustjs-linkedin": "~2.6.2",
+    "dustjs-linkedin": "^2.7.2",
     "jquery-ancestors": "^0.1.0",
     "jquery-jsonify": "^0.1.0",
     "jquery-valet": "^0.1.0",
