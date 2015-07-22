@@ -13,44 +13,37 @@ var bases = {
 	views: require('./view')
 };
 
-function Bassline(options) {
+var Router = require('./router');
+var Promise = require('./util/promise');
+
+function Ridge(options) {
 	var _app = this;
 
 	options = options || {};
 
-	_.extend(_app, _.omit(options, _.keys(bases)));
-
-	// set up jquery
-	_app.$el = $(_app.el);
-	_app.$ = _app.$el.find.bind(_app.$el);
+	_app.collections = {};
+	_app.models = { Model: bases.models };
+	_app.views = { View: bases.views };
 
 	// save reference of app
 
-	_app.models = {
-		Model: bases.models
-	};
-	_app.collections = {};
+	// TODO: stop referencing this instance in bases' prototypes
 
 	bases.views.prototype.app = _app;
 	bases.views.prototype.templateRoot = options.templateRoot || '';
 
 	bases.collections.prototype.modelClasses = _app.models;
 
-	// Set up the base View
-	_app.views = {
-		View: bases.views
-	};
+	_app.router = new Router(_.extend({ app: _app }, options.router));
 
-	options.views = options.views || {};
+	_app.module(options);
 
-	_.extend(options.views, require('./views'));
-
-	this.module(_.pick(options, [ 'models', 'collections', 'views' ]));
-
-	return _app;
+	$(function() {
+		Backbone.View.call(_app, options);
+	});
 }
 
-Bassline.prototype = {
+Ridge.prototype = _.create(Backbone.View.prototype, {
 	module: function(obj) {
 		var _app = this;
 		_.each(bases, function(Base, type) {
@@ -84,9 +77,83 @@ Bassline.prototype = {
 			});
 		else
 			return dust;
+	},
+
+	start: function() {
+		var _app = this;
+
+		$(document).on('click', 'a.nav', function (evt) {
+			var href = $(this).attr('href');
+			var protocol = this.protocol + '//';
+
+			if (href.slice(protocol.length) !== protocol) {
+				evt.preventDefault();
+				Backbone.history.navigate(href, { trigger: true });
+			}
+		});
+
+		_app.elements = {
+			$body: $(document.body),
+			main: _app.$('main')
+		};
+
+		var pageElement = _app.elements.main.children();
+
+		var View = _app.views[pageElement.data('view') || 'Page'];
+
+		_app.currentPage = new View({ el: pageElement });
+	},
+
+	navigate: function(options) {
+		var _app = this;
+
+		window.scrollTo(0,0);
+
+		_app.currentPage.remove();
+
+		var View = _app.views[options && options.view || 'Page'];
+
+		_app.currentPage = new View(options);
+
+		_app.currentPage.enter(_app.elements.main[0]);
+	},
+
+	// TODO: move login() and logout() to membership component
+
+	login: function(user) {
+		var user = this.user = new this.models.User(user);
+
+		if(this.loginForm && this.toggleLoginForm) {
+			this.toggleLoginForm();
+		}
+
+		if(!user.get('givenName')) {
+			user.fetch().promise(user);
+		} else {
+			Promise(function(resolve) {
+				resolve(user.toJSON());
+			}).promise(user);
+
+			Backbone.history.loadUrl(Backbone.history.fragment);
+		}
+
+		this.trigger('login');
+	},
+
+	logout: function(e) {
+		var _app = this;
+		e.preventDefault();
+		$.ajax({
+			url: '/auth/logout',
+			dataType: 'json',
+			success: function(res, statusText, xhr) {
+				window.location.replace('/');
+			},
+			error: function(res, statusText, error) {
+				// TODO
+			}
+		});
 	}
-};
+});
 
-_.extend(Bassline.prototype, Backbone.Events);
-
-module.exports = Bassline;
+module.exports = Ridge;
