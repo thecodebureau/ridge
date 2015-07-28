@@ -39,28 +39,5 @@ module.exports = Backbone.Model.extend({
 		_model.once('error', done);
 
 		return Backbone.sync.apply(_model, arguments);
-	},
-
-	patch: function(options) {
-		var _model = this;
-		
-		if(_.keys(this.dirtyAttributes).length < 1)
-			return;
-
-		options = (options || {});
-
-		options.patch = true;
-
-		this.off('change');
-
-		var args = [ this.dirtyAttributes, options ];
-
-		var xhr = Backbone.Model.prototype.save.apply(this, args);
-
-		if(xhr) {
-			xhr.always(function() {
-				_model.on('change', _model._updateDirty);
-			});
-		}
 	}
 });

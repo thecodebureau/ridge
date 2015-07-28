@@ -46,6 +46,7 @@ function Ridge(options) {
 Ridge.prototype = _.create(Backbone.View.prototype, {
 	module: function(obj) {
 		var _app = this;
+		if (!obj) return;
 		_.each(bases, function(Base, type) {
 			var length;
 			while((length = _.keys(obj[type]).length) > 0) {
@@ -63,37 +64,31 @@ Ridge.prototype = _.create(Backbone.View.prototype, {
 					throw new Error('Circular reference in ' + type + '. The following items were left: ' + _.keys(obj[type]).join(', '));
 			}
 		});
+
+		_.extend(dust.helpers, obj.helpers);
+		_.extend(dust.filters, obj.filters);
 	},
 
 	dust: dust,
 
-	dustModule: function(obj) {
-		if(obj)
-			_.each(obj, function(entities, type) {
-				if(dust[type])
-					_.each(entities, function(entity, name) {
-						dust[type][name] = entity;
-					});
-			});
-		else
-			return dust;
-	},
+	el: document.documentElement,
 
-	start: function() {
-		var _app = this;
+	events: {
+		'click a.nav': function (evt) {
+			var href = $(evt.currentTarget).attr('href');
+			var protocol = evt.currentTarget.protocol + '//';
 
-		$(document).on('click', 'a.nav', function (evt) {
-			var href = $(this).attr('href');
-			var protocol = this.protocol + '//';
-
-			if (href.slice(protocol.length) !== protocol) {
+			if (href && href.slice(0, protocol.length) !== protocol) {
 				evt.preventDefault();
 				Backbone.history.navigate(href, { trigger: true });
 			}
-		});
+		}
+	},
+
+	initialize: function() {
+		var _app = this;
 
 		_app.elements = {
-			$body: $(document.body),
 			main: _app.$('main')
 		};
 
