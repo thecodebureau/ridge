@@ -1,2 +1,3 @@
-# bassline
-... Drop! Woo woo woo!
+# ridge
+
+Agnostic attempt to bring structure to backbone apps.
