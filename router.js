@@ -2,6 +2,12 @@ var defaultRoutes = {
 	"*page": "page"
 };
 
+// NOTE i chose to to pass router.root and set in router
+// instead of using Backbone.history.start({ root: }) because
+// then history.navigate has to be called with the path without the root.
+// one could remove the root from the href in a.nav click event, but that seems a little
+// annoying
+
 module.exports = Backbone.Router.extend({
 	initialize: function(options) {
 		options = options || {};

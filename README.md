@@ -1,3 +1,3 @@
 # ridge
 
-Agnostic attempt to bring structure to backbone apps.
+Non-agnostic attempt to bring structure to backbone apps.
