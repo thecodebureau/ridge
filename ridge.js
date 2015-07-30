@@ -88,12 +88,6 @@ Ridge.prototype = _.create(Backbone.View.prototype, {
 	initialize: function() {
 		var _app = this;
 
-		var _id = $(document.body).data('user-id');
-
-		if(_id) {
-			_app.login({ _id: _id }, true);
-		}
-
 		_app.elements = {
 			main: _app.$('main')
 		};
@@ -122,23 +116,13 @@ Ridge.prototype = _.create(Backbone.View.prototype, {
 	// TODO: move login() and logout() to membership component
 
 	login: function(user) {
-		user = this.user = new this.models.User(user);
+		this.user = new this.models.User(user);
 
 		if(this.loginForm && this.toggleLoginForm) {
 			this.toggleLoginForm();
 		}
 
-		if(!user.has('email')) {
-			user.fetch().then(function() {
-				return user.attributes;
-			}).promise(user);
-		} else {
-			Promise(function(resolve) {
-				resolve(user.attributes);
-			}).promise(user);
-
-			Backbone.history.loadUrl(Backbone.history.fragment);
-		}
+		Backbone.history.loadUrl(Backbone.history.fragment);
 
 		this.trigger('login');
 	},

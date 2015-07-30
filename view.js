@@ -115,9 +115,10 @@ var View = Backbone.View.extend({
 
 		var args = arguments[0] === true ? _.rest(arguments) : null;
 
-		data.user = this.app.user;
+		if(_view.app.user)
+			data.user = _view.app.user.toJSON();
 
-		if (_view.model && _view.model !== _view.app.user) {
+		if (_view.model) {
 			var modelData = _view.model.toJSON();
 
 			if(args)
