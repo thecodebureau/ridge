@@ -38,6 +38,11 @@ function Ridge(options) {
 
 	_app.module(options);
 
+	_.each(options.modules, function(module) {
+		_app.module(module);
+	});
+
+
 	$(function() {
 		Backbone.View.call(_app, options);
 	});
