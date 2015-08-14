@@ -111,15 +111,12 @@ Ridge.prototype = _.create(Backbone.View.prototype, {
 
 		_app.currentPage.remove();
 
-		var View = _app.views[options && options.view || 'Page'];
-
-		_app.currentPage = new View(options);
-
-		_app.currentPage.enter(_app.elements.main[0]);
+		// create new view for the page, insert it into DOM (with enter) and save
+		// the returned view to _app.currentPage
+		_app.currentPage = new _app.views[options && options.view || 'Page'](options).enter(_app.elements.main[0]); 
 	},
 
 	// TODO: move login() and logout() to membership component
-
 	login: function(user) {
 		this.user = new this.models.User(user);
 
