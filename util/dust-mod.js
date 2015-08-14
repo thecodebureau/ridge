@@ -9,7 +9,6 @@ dust.loading = {};
 // if dust cannot find the specified template in dust.cache, this function gets called.
 dust.onLoad = function(name, callback) {
 	// callback is a function provided by dust.
-	// run console.log(callback.toString()) if you are interested in it's contents.
 	function notFound() {
 		delete dust.loading[name];
 		callback(new Error('Template Not Found: ' + name));
