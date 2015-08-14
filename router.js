@@ -31,14 +31,14 @@ module.exports = Backbone.Router.extend({
 	page: function(page, index) {
 		var _router = this;
 
-		page = page || '';
+		var path = _router.root + (page || '');
 
-		$.getJSON(_router.root + page)
+		$.getJSON(path)
 			.fail(function(xhr) {
 				_.each(xhr.responseJSON.compiled, _router.app.dust.loadSource);
 				_router.app.navigate(xhr.responseJSON);
 			}).done(function(res, txt, xhr) {
-				if(res.data && res.data.page && res.data.page.path.slice(1) !== page) {
+				if(res.data && res.data.page && res.data.page.path !== path) {
 					_router.navigate(res.data.page.path, { trigger: true, replace: true });
 				} else {
 					_.each(res.compiled, _router.app.dust.loadSource);
