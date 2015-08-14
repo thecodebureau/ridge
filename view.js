@@ -170,6 +170,7 @@ var View = Backbone.View.extend({
 
 	alternate: function() {
 		this.$el.alternate();
+		return this;
 	},
 
 	// animated remove
