@@ -39,15 +39,10 @@ function updateElement(html, tag, endTag, tagName) {
 		if (this.$el.is(tagName)) {
 			this.$el.attr(attributes(tag));
 		} else {
-			var $oldEl = this.$el;
-			var attrs = _.object(_.map($oldEl[0].attributes, function(attr) {
-				return [ attr.name, attr.value ];
-			}));
-			var queue = $oldEl.queue();
-			this.$el.clearQueue();
+			var old = this.$el, queue = old.queue();
+			old.clearQueue();
 			this.setElement(tag + endTag);
-			this.$el.attr(attrs);
-			$oldEl.replaceWith(this.el);
+			old.replaceWith(this.el);
 			this.$el.queue(queue);
 		}
 	}
@@ -67,7 +62,7 @@ var View = Backbone.View.extend({
 		// we clone to prevent views referencing the same object
 		this.data = options && options.data ? _.clone(options.data) : {};
 
-		this.elements = {};
+		if (!this.elements) this.elements = {};
 
 		Backbone.View.apply(this, arguments);
 
@@ -150,11 +145,8 @@ var View = Backbone.View.extend({
 						parseElement(out, resolve);
 				});
 			});
-		}).then(updateElement.bind(this))
-			.done(this.attach, function() { this.$el.dequeue(); })
-			.fail(function(err) {
-				if (err) console.error(err);
-			});
+		}).done(updateElement, this.attach, function() { this.$el.dequeue(); })
+			.fail(Promise.error);
 
 		this.ready = rendering.done;
 		this.rendering = rendering;
