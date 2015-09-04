@@ -32,8 +32,8 @@ function Promise(resolver) {
 				}
 		}
 
-		function reject() {
-			if (resolved) return;
+		function reject(e) {
+			if (resolved) return Promise.error(e);
 			resolved = true;
 			failList.fireWith(context, arguments);
 		}
@@ -68,6 +68,12 @@ function Promise(resolver) {
 	resolver(resolveWith, failList.fireWith);
 	return promise;
 }
+
+Promise.error = function(e) {
+	var console = window.console;
+	if (console && _.isFunction(console.error) && e)
+		console.error(e);
+};
 
 Promise.prototype = {
 	then: then,
