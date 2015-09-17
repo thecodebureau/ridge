@@ -50,6 +50,20 @@ function updateElement(html, tag, endTag, tagName) {
 	this.rendered = true;
 }
 
+function createViews(view) {
+	var views = _.flatten(_.map(view.elements, function(selector, name) {
+		return _.map(view.$(selector), function(elem) {
+			return new view.app.views[name]({
+				el: elem,
+				model: view.model,
+				data: view.data
+			});
+		});
+	}));
+
+	return views.concat.apply(views, _.map(views, createViews));
+}
+
 var View = Backbone.View.extend({
 	// Promise factory function using view as the context with callbacks
 	Promise: function(resolver) {
@@ -152,6 +166,10 @@ var View = Backbone.View.extend({
 		this.rendering = rendering;
 
 		return this;
+	},
+
+	attach: function() {
+		this.views = createViews(this);
 	},
 
 	// animated enter
