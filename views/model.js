@@ -239,7 +239,7 @@ module.exports = {
 		});
 		
 		if(twoway) {
-			var $properties = this.$('[property]').not(':has([property])').not('.spytext-field').on('keyup', function() {
+			var $properties = this.$('[property]').not(':has([property])').not('.spytext-field').on('input', function() {
 				// trigger change on keyups, not only blur
 				$(this).trigger('change');
 			});
