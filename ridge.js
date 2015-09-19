@@ -117,14 +117,22 @@ Ridge.prototype = _.create(Backbone.View.prototype, {
 	},
 
 	// TODO: move login() and logout() to membership component
-	login: function(user) {
+	login: function(user, redirect) {
 		this.user = new this.models.User(user);
 
 		if(this.loginForm && this.toggleLoginForm) {
 			this.toggleLoginForm();
 		}
 
-		Backbone.history.loadUrl(Backbone.history.fragment);
+		if(redirect) {
+			if(/^\/admin/.test(redirect))
+				window.location.replace(redirect);
+			else
+				Backbone.history.navigate(redirect, { trigger: true });
+		} else {
+			// Backbone.history.loadUrl is called by Backbone.history.navigate when trigger: true
+			Backbone.history.loadUrl(Backbone.history.fragment);
+		}
 
 		this.trigger('login');
 	},
