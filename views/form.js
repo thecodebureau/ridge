@@ -7,12 +7,13 @@ module.exports = {
 		'blur input,textarea': 'blur',
 		'input input,textarea': 'updateValue',
 		'mouseover .invalid>label.icon': 'hover',
-		'mouseout .invalid>label.icon': 'unhover',
-		'submit': 'submit'
+		'mouseout .invalid>label.icon': 'unhover'
 	},
 
 	initialize: function(opts) {
-		_.extend(this, _.pick(opts, 'rules', 'messages'));
+		_.extend(this, _.pick(opts, 'rules', 'messages', 'onError', 'onSuccess', 'submit'));
+
+		this.$el.on('submit', this.submit.bind(this));
 	},
 
 	attach: function() {
@@ -53,12 +54,18 @@ module.exports = {
 	},
 
 	onError: function(message) {
+		var _view = this;
+
 		if(_view.messageView)
 			_view.messageView.remove();
 
 		_view.messageView = new _view.app.views.Message({
 			message: message
-		}).enter(this.$el, 'before');
+		}).enter(_view.$el, 'before');
+	},
+
+	onSuccess: function(data, statusText, xhr) {
+		this.trigger('submitted', data, statusText, xhr);
 	},
 
 	submit: function(e) {
@@ -75,9 +82,9 @@ module.exports = {
 				url: this.$el.attr('action'),
 				data: this.$el.JSONify(),
 				dataType: 'json',
-				success: function(data) {
-					_view.trigger('submitted', data);
-				}, 
+				success: function(data, statusText, xhr) {
+					_view.onSuccess(data, statusText, xhr);
+				},
 				error: function(xhr) {
 					_view.onError(xhr.responseJSON);
 				},
