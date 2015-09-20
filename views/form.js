@@ -75,8 +75,8 @@ module.exports = {
 				url: this.$el.attr('action'),
 				data: this.$el.JSONify(),
 				dataType: 'json',
-				success: function(message) {
-					_view.trigger('submitted', message);
+				success: function(data) {
+					_view.trigger('submitted', data);
 				}, 
 				error: function(xhr) {
 					_view.onError(xhr.responseJSON);
