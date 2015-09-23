@@ -1,4 +1,6 @@
-module.exports = {
+var app = require('../ridge');
+
+module.exports = require('../view').extend({
 	events: {
 		'submit form': 'login',
 		'click button.social': 'socialLogin',
@@ -37,7 +39,7 @@ module.exports = {
 			this.message.remove();
 		}
 
-		this.message = new this.app.views.Message({
+		this.message = new app.views.Message({
 			//animateHeight: true,
 			data: { 
 				type: 'error',
@@ -62,7 +64,7 @@ module.exports = {
 			data: $(e.currentTarget).JSONify(),
 			dataType: 'json',
 			success: function(user, statusText, xhr) {
-				view.app.login(user);
+				app.login(user);
 
 				var redirect = xhr.getResponseHeader('Location');
 
@@ -73,7 +75,7 @@ module.exports = {
 				} else 
 					redirect = '/';
 				
-				view.app.router.navigate(redirect, true);
+				app.router.navigate(redirect, true);
 			},
 			error: function(xhr, statusText, error) {
 				view.onError(xhr.responseJSON);
@@ -87,7 +89,7 @@ module.exports = {
 		this.listenToOnce(window.broadcast, 'authenticate', function(err, user) {
 			if(err) return _view.onError(err);
 
-			_view.app.login(user);
+			app.login(user);
 		});
 	}
-};
+});

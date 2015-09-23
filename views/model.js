@@ -1,3 +1,5 @@
+var app = require('../ridge');
+
 function _setter(element/* pointer */) {
 	// NOTE element can be an array of elements (currently only for checkbox and radio)
 	var pointers = _.map(_.rest(arguments), function(fnc) {
@@ -22,7 +24,7 @@ function _filter(/* filters */) {
 	};
 }
 
-module.exports = {
+module.exports = require('../view').extend({
 	tagName: 'article',
 
 	initialize: function(options) {
@@ -40,7 +42,7 @@ module.exports = {
 
 		// we need to use the same instance of Dust as Bassline, requiring will
 		// most likely get the wrong instance
-		var dust = this.app.dust;
+		var dust = app.dust;
 
 		this.$('[property]').not(':has([property])').each(function() {
 			// we figure out the namespace of the property by
@@ -402,4 +404,4 @@ module.exports = {
 			return $(this.val());
 		}
 	}
-};
+});
