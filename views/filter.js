@@ -1,4 +1,4 @@
-module.exports = {
+module.exports = require('../view').extend({
 	events: {
 		'submit': 'filter'
 	},
@@ -40,4 +40,4 @@ module.exports = {
 
 		_view.collection.fetch({ reset: true });
 	}
-};
+});

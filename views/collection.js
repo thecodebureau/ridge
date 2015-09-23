@@ -1,17 +1,19 @@
-module.exports = {
+var app = require('../ridge');
+
+module.exports = require('../view').extend({
 	initialize: function(options) {
 		var _view = this;
 
 		if(!_view.DefaultModelView)
-			_view.DefaultModelView = _view.app.views.Model;
+			_view.DefaultModelView = app.views.Model;
 
-		if(!_view.collection) _view.collection = new _view.app.collections[_view.$el.data('collection')]();
+		if(!_view.collection) _view.collection = new app.collections[_view.$el.data('collection')]();
 
 		_view.listenTo(_view.collection, 'add', _view.add);
 		_view.listenTo(_view.collection, 'remove', _view.remove);
 		_view.listenTo(_view.collection, 'reset', _view.reset);
 
-		_view.ModelView = _view.app.views[_view.collection.modelName] || _view.DefaultModelView;
+		_view.ModelView = app.views[_view.collection.modelName] || _view.DefaultModelView;
 
 		_view.modelViews = [];
 	},
@@ -28,13 +30,13 @@ module.exports = {
 		_view.pagination = [];
 
 		$pagination.each(function() {
-			_view.pagination.push(new _view.app.views.Pagination({ el: this, collection: _view.collection, pagination: _view.pagination }));
+			_view.pagination.push(new app.views.Pagination({ el: this, collection: _view.collection, pagination: _view.pagination }));
 		});
 
 		var $filter = _view.$('form.filter');
 
 		$filter.each(function() {
-			new _view.app.views.Filter({ el: this, collection: _view.collection });
+			new app.views.Filter({ el: this, collection: _view.collection });
 		});
 
 		_view.collection.fetch({reset: true});
@@ -89,4 +91,4 @@ module.exports = {
 
 		this.modelViews.push(modelView);
 	},
-};
+});

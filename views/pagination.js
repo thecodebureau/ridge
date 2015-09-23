@@ -1,4 +1,4 @@
-module.exports = {
+module.exports = require('../view').extend({
 	events: {
 		'click a': 'paginate'
 	},
@@ -113,4 +113,4 @@ module.exports = {
 
 		}
 	}
-};
+});

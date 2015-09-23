@@ -1,5 +1,6 @@
+var app = require('../ridge');
 
-module.exports = {
+module.exports = require('../view').extend({
 	tagName: 'form',
 
 	events: {
@@ -59,7 +60,7 @@ module.exports = {
 		if(_view.messageView)
 			_view.messageView.remove();
 
-		_view.messageView = new _view.app.views.Message({
+		_view.messageView = new app.views.Message({
 			message: message
 		}).enter(_view.$el, 'before');
 	},
@@ -96,5 +97,4 @@ module.exports = {
 		}
 
 	}
-};
-
+});
