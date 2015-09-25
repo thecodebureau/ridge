@@ -1,6 +1,7 @@
 /* Base view */
 
 var dust = require('dustjs-linkedin'),
+	app = require('./ridge'),
 	Promise = require('./util/promise'),
 	tagPattern = /<(\w+)[^>]*>/,
 	attrPattern = /\s+(\S+)\s*=\s*("[^"]*"|'[^']*')/g;
@@ -48,12 +49,15 @@ function updateElement(html, tag, endTag, tagName) {
 	}
 	this.el.innerHTML = html;
 	this.rendered = true;
+
+	// remove old subviews
+	_.invoke(this.views, 'remove');
 }
 
 function createViews(view) {
-	var views = _.flatten(_.map(view.elements, function(selector, name) {
+	var views = _.flatten(_.map(view.subviews, function(selector, name) {
 		return _.map(view.$(selector), function(elem) {
-			return new view.app.views[name]({
+			return new app.views[name]({
 				el: elem,
 				model: view.model,
 				data: view.data
@@ -61,7 +65,7 @@ function createViews(view) {
 		});
 	}));
 
-	return views.concat.apply(views, _.map(views, createViews));
+	return views;
 }
 
 var View = Backbone.View.extend({
@@ -81,10 +85,10 @@ var View = Backbone.View.extend({
 		Backbone.View.apply(this, arguments);
 
 		if(_.isString(this.model))
-			this.model = new this.app.models[this.model]();
+			this.model = new app.models[this.model]();
 
 		if(_.isString(this.collection))
-			this.collection = new this.app.collections[this.collection]();
+			this.collection = new app.collections[this.collection]();
 
 		this.rendered = (this.el && this.el.firstChild) != null;
 
@@ -110,7 +114,7 @@ var View = Backbone.View.extend({
 		_view.$('[data-view]').each(function() {
 			var viewName = $(this).data('view');
 
-			var View = _view.app.views[viewName];
+			var View = app.views[viewName];
 
 			// TODO destroy/remove all nested views when a PageView is removed.
 			if (View) new View({ el: this, data: _view.data });
@@ -124,8 +128,8 @@ var View = Backbone.View.extend({
 
 		var args = arguments[0] === true ? _.rest(arguments) : null;
 
-		if(_view.app.user)
-			data.user = _view.app.user.toJSON();
+		if(app.user)
+			data.user = app.user.toJSON();
 
 		if (_view.model) {
 			var modelData = _view.model.toJSON();
@@ -187,6 +191,11 @@ var View = Backbone.View.extend({
 	remove: function() {
 		this.$el.leave();
 		return this.stopListening();
+	},
+
+	stopListening: function() {
+		Backbone.Events.stopListening.apply(this, arguments);
+		_.invoke(this.views, 'stopListening');
 	}
 });
 

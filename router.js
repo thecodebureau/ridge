@@ -1,49 +1,67 @@
-var defaultRoutes = {
-	"*page": "page"
-};
-
-// NOTE i chose to to pass router.root and set in router
-// instead of using Backbone.history.start({ root: }) because
-// then history.navigate has to be called with the path without the root.
-// one could remove the root from the href in a.nav click event, but that seems a little
-// annoying
+var app = require('./ridge');
 
 module.exports = Backbone.Router.extend({
-	initialize: function(options) {
-		options = options || {};
-
-		var _router = this;
-
-		_.extend(_router, _.pick(options, [ 'app', 'root' ]));
-
-		if(_router.root) {
-			// ensure trailing '/' in root
-			if(!/\/$/.test(_router.root)) 
-				_router.root = _router.root + '/';
-		} else
-			_router.root = '/';
-
-		_.each(_.extend(defaultRoutes, options.routes), function(value, path) {
-			_router.route(_router.root.slice(1) + path, value);
-		});
+	routes: {
+		'*page': 'page'
 	},
 
-	page: function(page, index) {
-		var _router = this;
+	execute: function(callback, args) {
+		var query = args.pop(), params = _.extend({}, args);
 
-		var path = _router.root + (page || '');
-
-		$.getJSON(path)
-			.fail(function(xhr) {
-				_.each(xhr.responseJSON.compiled, _router.app.dust.loadSource);
-				_router.app.navigate(xhr.responseJSON);
-			}).done(function(res, txt, xhr) {
-				if(res.data && res.data.page && res.data.page.path !== path) {
-					_router.navigate(res.data.page.path, { trigger: true, replace: true });
-				} else {
-					_.each(res.compiled, _router.app.dust.loadSource);
-					_router.app.navigate(res);
-				}
+		if (query) {
+			// parse query string
+			// assuming single value per field
+			_.each(query.split('&'), function(str) {
+				var index = str.indexOf('=');
+				if (index > 0)
+					params[str.slice(0, index)] = decodeURIComponent(str.slice(index + 1).replace('+', ' '));
 			});
+
+			// urlencode
+			query = encodeURI(query).replace('%25', '%');
+		}
+
+		this.params = params;
+		this.query = query;
+
+		args.push(query);
+
+		if (callback) return callback.apply(this, args);
+	},
+
+	page: function(page, query) {
+		var router = this,
+			options = { model: page = app.pages.add({ id: page || '' }), query: query };
+
+		// initial route
+		if (!app.currentPage) return false;
+
+		if (page === router.loading) return;
+
+		if (page.has('template'))
+			loadView();
+		else
+			(router.loading = page)
+				.fetch({ data: query })
+				.then(null, function(xhr) {
+					// transform error and set options
+					var resp = xhr.responseJSON,
+						error = _.extend(_.pick(xhr, 'status', 'statusText'), resp);
+
+					options = _.extend({ template: 'error' }, resp);
+					options.data = _.extend({ error: error }, options.data || resp);
+					return resp;
+				})
+				.always(function(resp) {
+					_.each(resp && resp.compiled, app.dust.loadSource);
+					if (router.loading === page)
+						loadView();
+				});
+
+		function loadView() {
+			router.loading = false;
+			if (page !== app.currentPage.model)
+				app.navigate(_.defaults(options, page.pick('template')));
+		}
 	}
 });
