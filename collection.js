@@ -1,4 +1,10 @@
 module.exports = Backbone.Collection.extend({
+	modelClasses: require('./ridge').extend({
+		models: {
+			Model: require('./model')
+		}
+	}).models,
+
 	constructor: function(attributes, options) {
 		var _collection = this;
 

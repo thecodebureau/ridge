@@ -7,81 +7,32 @@ require('./util/dust-mod');
 
 var dust = require('dustjs-linkedin');
 
-var bases = {
-	collections: require('./collection'),
-	models: require('./model'),
-	views: require('./view')
-};
-
-var Router = require('./router');
-var Promise = require('./util/promise');
-
-function Ridge(options) {
-	var _app = this;
-
-	options = options || {};
-
-	_app.collections = {};
-	_app.models = { Model: bases.models };
-	_app.views = { View: bases.views };
-
-	// save reference of app
-
-	// TODO: stop referencing this instance in bases' prototypes
-
-	bases.views.prototype.app = _app;
-	bases.views.prototype.templateRoot = options.templateRoot || '';
-
-	bases.collections.prototype.modelClasses = _app.models;
-
-	_app.router = new Router(_.extend({ app: _app }, options.router));
-
-	_app.module(options);
-
-	_.each(options.modules, function(module) {
-		_app.module(module);
-	});
-
-
-	$(function() {
-		Backbone.View.call(_app, options);
-	});
-}
-
-Ridge.prototype = _.create(Backbone.View.prototype, {
-	module: function(obj) {
-		var _app = this;
-		if (!obj) return;
-		_.each(bases, function(Base, type) {
-			var length;
-			while((length = _.keys(obj[type]).length) > 0) {
-				_.each(obj[type], function(value, name) {
-					var Class = value.extends ? _app[type][value.extends] : Base;
-
-					if(Class) {
-						value.name = name;
-						_app[type][name] = Class.extend(value);
-						delete obj[type][name];
-					}
-				});
-
-				if(length === _.keys(obj[type]).length) 
-					throw new Error('Circular reference in ' + type + '. The following items were left: ' + _.keys(obj[type]).join(', '));
-			}
-		});
-
-		_.extend(dust.helpers, obj.helpers);
-		_.extend(dust.filters, obj.filters);
-	},
+var app = module.exports = _.create(Backbone.View.prototype, {
 
 	dust: dust,
+
+	helpers: dust.helpers,
+
+	filters: dust.filters,
+
+	pages: new Backbone.Collection(null, {
+		model: Backbone.Model.extend({
+			url: function() {
+				return '/' + encodeURI(this.id);
+			},
+
+			parse: function(resp) {
+				return _.has(resp, 'data') ? resp.data : resp;
+			}
+		})
+	}),
 
 	el: document.documentElement,
 
 	events: {
 		'click a.nav': function (evt) {
 			var href = $(evt.currentTarget).attr('href');
-			var protocol = evt.currentTarget.protocol + '//';
+			var protocol = evt.currentTarget.protocol;
 
 			if (href && href.slice(0, protocol.length) !== protocol) {
 				evt.preventDefault();
@@ -90,67 +41,48 @@ Ridge.prototype = _.create(Backbone.View.prototype, {
 		}
 	},
 
+	extend: function() {
+		_.each(arguments, function(arg) {
+			_.each(arg, function(value, key) {
+				app[key] = typeof value == 'object' && /s$/.test(key) ?
+					_.extend(app[key] || {}, value) : value;
+			});
+		});
+		return app;
+	},
+
+	start: function(options) {
+		$(function() {
+			Backbone.history.start(options);
+			Backbone.View.call(app);
+		});
+	},
+
 	initialize: function() {
-		var _app = this;
-
-		_app.elements = {
-			main: _app.$('main')
-		};
-
-		var pageElement = _app.elements.main.children();
-
-		var View = _app.views[pageElement.data('view') || 'Page'];
-
-		_app.currentPage = new View({ el: pageElement });
+		var main = app.$('main');
+		app.elements = { main: main };
+		app.currentPage = new app.views.Page(_.extend({
+			model: app.pages.first(),
+			el: main.children()
+		}, main.data()));
 	},
 
 	navigate: function(options) {
-		var _app = this;
-
-		window.scrollTo(0,0);
-
-		_app.currentPage.remove();
+		app.currentPage.remove();
 
 		// create new view for the page, insert it into DOM (with enter) and save
 		// the returned view to _app.currentPage
-		_app.currentPage = new _app.views[options && options.view || 'Page'](options).enter(_app.elements.main[0]); 
+		app.currentPage = new app.views.Page(options)
+			.enter(app.elements.main)
+			.ready(function() {
+				window.scrollTo(this.scrollX || 0, this.scrollY || 0);
+			});
+
+		document.title = _.result(app.currentPage, 'title', document.title);
 	},
 
-	// TODO: move login() and logout() to membership component
-	login: function(user, redirect) {
-		this.user = new this.models.User(user);
-
-		if(this.loginForm && this.toggleLoginForm) {
-			this.toggleLoginForm();
-		}
-
-		if(redirect) {
-			if(/^\/admin/.test(redirect))
-				window.location.replace(redirect);
-			else
-				Backbone.history.navigate(redirect, { trigger: true });
-		} else {
-			// Backbone.history.loadUrl is called by Backbone.history.navigate when trigger: true
-			Backbone.history.loadUrl(Backbone.history.fragment);
-		}
-
-		this.trigger('login');
-	},
-
-	logout: function(e) {
-		var _app = this;
-		e.preventDefault();
-		$.ajax({
-			url: '/auth/logout',
-			dataType: 'json',
-			success: function(res, statusText, xhr) {
-				window.location.replace('/');
-			},
-			error: function(res, statusText, error) {
-				// TODO
-			}
-		});
+	remember: function(state) {
+		if (Backbone.history._usePushState)
+			window.history.replaceState(_.extend({}, window.history.state, state), document.title);
 	}
 });
-
-module.exports = Ridge;
