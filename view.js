@@ -56,14 +56,21 @@ function updateElement(html, tag, endTag, tagName) {
 
 function createViews(view) {
 	return _.flatten(_.map(view.subviews, function(options, name) {
-		var Subview = app.views[name];
-		if ($.isPlainObject(options)) return new Subview(options);
-
-		var selector = options;
-		options = {
+		var defaults = {
 			model: view.model,
 			data: view.data
 		};
+
+		var Subview = app.views[name];
+
+		var selector = options;
+		if ($.isPlainObject(options)) {
+			selector = options.selector;
+			if (!selector) return new Subview(options);
+			else _.defaults(options, defaults);
+		} else {
+			options = _.clone(defaults);
+		}
 
 		return _.map(view.$(selector), function(elem) {
 			options.el = elem;
