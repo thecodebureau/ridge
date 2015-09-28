@@ -55,23 +55,21 @@ function updateElement(html, tag, endTag, tagName) {
 }
 
 function createViews(view) {
-	var views = _.flatten(_.map(view.subviews, function(options, name) {
-		if(typeof options !== 'object')
-			options = {
-				el: options
-			};
+	return _.flatten(_.map(view.subviews, function(options, name) {
+		var Subview = app.views[name];
+		if ($.isPlainObject(options)) return new Subview(options);
 
-		_.defaults(options, {
+		var selector = options;
+		options = {
 			model: view.model,
 			data: view.data
-		});
+		};
 
-		return _.map(view.$(options.el), function(elem) {
-			return new app.views[name](_.extend({}, options, { el: elem }));
+		return _.map(view.$(selector), function(elem) {
+			options.el = elem;
+			return new Subview(options);
 		});
 	}));
-
-	return views;
 }
 
 var View = Backbone.View.extend({
@@ -179,7 +177,6 @@ var View = Backbone.View.extend({
 	},
 
 	attach: function() {
-		console.log('inside attach');
 		this.views = createViews(this);
 	},
 
