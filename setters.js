@@ -1,26 +1,21 @@
 module.exports = {
-	checkRadio: function(value) {
-		if(!_.isArray(value))
-			value = [ value ];
-
-		var elements = _.isArray(this) ? this : [ this ];
-
-		$(elements).prop('checked', false);
-
-		value.forEach(function(value) {
-			elements.forEach(function(element) {
-				if(element.value === value)
-					element.checked = true;
-			});
-		});
+	html: function(el, value, previousValue) {
+		$(el).html(value);
 	},
 
-	html: function(value) {
-		$(this).html(value);
-	},
+	value: function(el, value, previousValue) {
+		var $el = $(el);
 
-	value: function(value) {
-		$(this).val(value);
+		if($el[0].type === 'radio' || $el[0].type === 'checkbox') {
+			$el.prop('checked', false);
+
+			if(value)
+				$el.filter((_.isArray(value) ? value : [ value ]).map(function(value) {
+					return '[value="' + value + '"]';
+				}).join(',')).prop('checked', true);
+		} else {
+			$(el).val(value);
+		}
 	},
 
 	published: function(value) {
@@ -41,15 +36,6 @@ module.exports = {
 
 	src: function(value) {
 		$(this).attr('src', value);
-	},
-
-	select: function(value) {
-		var $el = $(this);
-
-		if(value)
-			$el.val(value);
-		else
-			$el.val($("> option:first-child", $el).val());
 	},
 
 	selectMultiple: function(value) {

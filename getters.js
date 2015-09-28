@@ -1,12 +1,40 @@
 
-module.exports = {
-	html: function() {
-		return $(this).html();
-	},
+function html(el) {
+	return $(el).html();
+}
 
-	value: function() {
-		return $(this).val();
-	},
+html.events = [ 'change', 'input' ];
+
+function value(el) {
+	var $el = $(el);
+
+	if($el.length === 1) {
+		if((/checkbox/i).test($el[0].type))
+			return $el.is(':checked');
+
+		return $el.val();
+	} else {
+		if((/radio/i).test($el[0].type)) {
+			return $el.filter(':checked').val();
+		} else {
+			if((/checkbox/i).test($el[0].type))
+				$el = $el.filter(':checked');
+		
+			var arr = $el.toArray().map(function(element) {
+				return $(element).val();
+			});
+
+			return arr.length > 0 ? arr : null;
+		}
+	}
+}
+
+value.events = [ 'input', 'change', 'blur' ];
+
+module.exports = {
+	html: html,
+
+	value: value,
 
 	parts: function(value) {
 		var parts = $(this).find('[data-part]').toArray();
@@ -20,26 +48,8 @@ module.exports = {
 			return parts.map(function(el) { return ($(el).val() || $(el).html()); }).join(' ').trim();
 	},
 
-	checkRadio: function(value) {
-		var values = [];
-
-		if(_.isArray(this))
-			this.forEach(function(el) {
-				if(el.checked)
-					values.push(el.value);
-			});
-		else
-			return this.value;
-
-		return this[0].type === 'radio' ? values[0] : values;
-	},
-
 	src: function(value) {
 		return $(this).attr('src');
-	},
-
-	select: function() {
-		return $(this).val();
 	},
 
 	selectMultiple: function(value) {
