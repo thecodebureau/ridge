@@ -186,6 +186,10 @@ var View = Backbone.View.extend({
 		return this;
 	},
 
+	preventDefault: function(e) {
+		e.preventDefault();
+	},
+
 	alternate: function() {
 		this.$el.alternate();
 		return this;
