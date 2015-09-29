@@ -1,16 +1,6 @@
 var app = require('ridge');
 
 module.exports = require('ridge/view').extend({
-	events: {
-		'click :has(.controls):not(.editing)': function(e) {
-			var view = _.findWhere(this.modelViews, { el: e.currentTarget });
-			if (view && view.controls) {
-				view.controls.edit(e);
-				view.$el.addClass('editing');
-			}
-		}
-	},
-
 	initialize: function(options) {
 		var _view = this;
 
@@ -19,8 +9,6 @@ module.exports = require('ridge/view').extend({
 		if(_.isString(options.collection))
 			this.collection = new app.collections[options.collection]();
 
-		_view.listenTo(_view.collection, 'add', _view.add);
-		//_view.listenTo(_view.collection, 'remove', _view.remove);
 		_view.listenTo(_view.collection, 'reset', _view.reset);
 	},
 
