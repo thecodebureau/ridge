@@ -13,6 +13,10 @@ module.exports = require('ridge/view').extend({
 	},
 
 	attach: function() {
+		var container = this.$('.container');
+
+		this.container = container.length > 0 ? container : this.$el;
+		
 		this.collection.fetch({ reset: true });
 	},
 
@@ -24,7 +28,6 @@ module.exports = require('ridge/view').extend({
 		new app.views.CrudModel({
 			model: model,
 			template: this.modelTemplate
-
-		}).enter(this.el);
+		}).enter(this.container);
 	},
 });
