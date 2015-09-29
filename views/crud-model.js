@@ -5,9 +5,14 @@ module.exports = require('ridge/view').extend({
 		'click button': function(e) {
 			e.stopPropagation();
 		},
+		'click button[data-command="edit"]': 'edit',
 		'click button[data-command="publish"]': 'publish',
 		'click button[data-command="delete"]': 'delete',
 		'click button[data-command="unpublish"]': 'unpublish'
+	},
+
+	edit: function(e) {
+		app.router.navigate(window.location.pathname + '/' + this.model.id, { trigger: true });
 	},
 
 	delete: function(e) {
