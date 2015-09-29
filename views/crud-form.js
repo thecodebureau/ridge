@@ -45,12 +45,6 @@ module.exports = require('ridge/view').extend({
 
 		require('ridge/view').prototype.attach.apply(this, arguments);
 
-		//if(!_view.model.isNew())
-		//	_view.populate();
-
-		//if(_view.model.isNew())
-		//	this.bind();
-		//else
 		this.bind();
 	},
 
@@ -59,23 +53,23 @@ module.exports = require('ridge/view').extend({
 
 		this._bindings = [];
 
-		_.each(this.bindings, function(obj, key) {
-			if(obj.hook) obj.selector = '[data-hook="' + obj.hook + '"]';
+		_.each(this.bindings, function(opts, key) {
+			if(opts.hook) opts.selector = '[data-hook="' + opts.hook + '"]';
 
-			if(obj.type) obj.get = obj.set = obj.type;
+			if(opts.type) opts.get = opts.set = opts.type;
 
-			if(!_.isArray(obj.set)) obj.set = [ obj.set ];
+			if(!_.isArray(opts.set)) opts.set = [ opts.set ];
 
 			var namespace = key.split('.');
 
-			var $el = _form.$(obj.selector);
+			var $el = _form.$(opts.selector);
 
-			var getter = _getters[obj.get];
+			var getter = _getters[opts.get];
 
 			var setter;
 			
-			if(obj.set) {
-				setter = _setter.apply(null, obj.set.map(function(name) {
+			if(opts.set) {
+				setter = _setter.apply(null, opts.set.map(function(name) {
 					return _setters[name];
 				}));
 			}
@@ -116,8 +110,6 @@ module.exports = require('ridge/view').extend({
 			_form.listenTo(_form.model, 'change:' + namespace[0], function(model, value, opts) {
 				if(opts && opts.internalUpdate) return;
 
-				console.log('change!');
-
 				for(var i = 0, ref = model.changedAttributes(); ref && i < namespace.length; i++) {
 					ref = ref[namespace[i]];
 				}
@@ -150,37 +142,5 @@ module.exports = require('ridge/view').extend({
 
 			binding.setter(binding.el, ref);
 		});
-	},
-
-
-	setModel: function(model, populate) {
-		//var _view = this;
-
-		//if(_view.model) {
-		//	_view.stopListening(_view.model);
-		//	_view.model.trigger('cancel');
-		//}
-
-		//_view.model = model || new _view.collection.model();
-
-		//if(_view.imageUploads) {
-		//	_view.imageUploads.forEach(function(imageUpload) {
-		//		imageUpload.setModel(_view.model);
-		//	});
-		//}
-
-		//_view.listenTo(_view.model, 'cancel', _view.setModel.bind(_view, undefined, true));
-		//_view.listenTo(_view.model, 'destroy', _view.setModel.bind(_view, undefined, true));
-
-		//if(populate !== false) {
-		//	_view.populate();
-		//	_view.watch();
-		//}
-
-		//if(_view.controls) {
-		//	_view.controls.setModel(_view.model);//set model, do update since attach (currently) calls that
-		//}
-
-		//_view.$('header h1').text(_view.model.isNew() ? 'Create ' + _view.model.name.toSpaceCase(true) : 'Editing ' + (_view.model.get('title') || _view.model.get('headline') || _view.model.get('name')));
 	},
 });
