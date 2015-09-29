@@ -54,24 +54,39 @@ module.exports = require('ridge/view').extend({
 		this._bindings = [];
 
 		_.each(this.bindings, function(opts, key) {
+			if(_.isString(opts))
+				opts = {
+					hook: key,
+					type: opts
+				};
+
 			if(opts.hook) opts.selector = '[data-hook="' + opts.hook + '"]';
 
 			if(opts.type) opts.get = opts.set = opts.type;
 
 			if(!_.isArray(opts.set)) opts.set = [ opts.set ];
 
-			var namespace = key.split('.');
-
 			var $el = _form.$(opts.selector);
 
-			var getter = _getters[opts.get];
+			if($el.length === 0) return;
 
-			var setter;
+			var namespace = key.split('.'),
+				getter = _getters[opts.get];
 			
 			if(opts.set) {
-				setter = _setter.apply(null, opts.set.map(function(name) {
+				var setter = _setter.apply(null, opts.set.map(function(name) {
 					return _setters[name];
 				}));
+
+				_form.listenTo(_form.model, 'change:' + namespace[0], function(model, value, opts) {
+					if(opts && opts.internalUpdate) return;
+
+					for(var i = 0, ref = model.changedAttributes(); ref && i < namespace.length; i++) {
+						ref = ref[namespace[i]];
+					}
+
+					setter($el, ref || null);
+				});
 			}
 
 			$el.on(getter.events.join(' '), function() {
@@ -96,7 +111,10 @@ module.exports = require('ridge/view').extend({
 						delete ref[namespace[i]];
 
 					// TODO perhaps unset if obj is empty element
-					_form.model.set(namespace[0], obj, { internalUpdate: true });
+					if(_.isEmpty(obj))
+						_form.model.unset(namespace[0], { internalUpdate: true });
+					else
+						_form.model.set(namespace[0], obj, { internalUpdate: true });
 				} else {
 					// single level namespace, simply set or unset the model attribute
 					// depending if value is set
@@ -105,16 +123,6 @@ module.exports = require('ridge/view').extend({
 					else
 						_form.model.unset(namespace[0], { internalUpdate: true });
 				}
-			});
-
-			_form.listenTo(_form.model, 'change:' + namespace[0], function(model, value, opts) {
-				if(opts && opts.internalUpdate) return;
-
-				for(var i = 0, ref = model.changedAttributes(); ref && i < namespace.length; i++) {
-					ref = ref[namespace[i]];
-				}
-
-				setter($el, ref || null);
 			});
 
 			_form._bindings.push({
