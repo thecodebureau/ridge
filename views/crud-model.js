@@ -3,16 +3,12 @@ var app = require('ridge');
 module.exports = require('ridge/view').extend({
 	events: {
 		'click button': function(e) {
+			e.preventDefault();
 			e.stopPropagation();
 		},
-		'click button[data-command="edit"]': 'edit',
 		'click button[data-command="publish"]': 'publish',
-		'click button[data-command="delete"]': 'delete',
-		'click button[data-command="unpublish"]': 'unpublish'
-	},
-
-	edit: function(e) {
-		app.router.navigate(window.location.pathname + '/' + this.model.id, { trigger: true });
+		'click button[data-command="unpublish"]': 'unpublish',
+		'click button[data-command="delete"]': 'delete'
 	},
 
 	delete: function(e) {
@@ -34,7 +30,9 @@ module.exports = require('ridge/view').extend({
 		this.listenTo(this.model, 'sync', this.render);
 
 		this.listenTo(this.model, 'destroy', this.remove);
-	},
 
-	template: 'admin/models/field',
+		this.listenTo(this.model, 'change:datePublished', function(model, value) {
+			this.$el.toggleClass('published', !!value).toggleClass('unpublished', !value);
+		});
+	}
 });
