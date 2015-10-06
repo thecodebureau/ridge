@@ -31,22 +31,26 @@ function value(el) {
 
 value.events = [ 'input', 'change', 'blur' ];
 
+function parts(el) {
+	var _parts = $(el).find('[data-part]').toArray();
+	// if the property is in "parts" we need to collect vales from all
+	// the parts (elements). return if not all parts are set
+	if(_.some(_parts, function(el) { 
+		return !($(el).val() || $(el).html()); 
+	}))
+		return null;
+	else
+		return _parts.map(function(el) { return ($(el).val() || $(el).html()); }).join(' ').trim();
+}
+
+parts.events = [ 'input', 'change', 'blur' ];
+
 module.exports = {
 	html: html,
 
 	value: value,
 
-	parts: function(value) {
-		var parts = $(this).find('[data-part]').toArray();
-		// if the property is in "parts" we need to collect vales from all
-		// the parts (elements). return if not all parts are set
-		if(_.some(parts, function(el) { 
-			return !($(el).val() || $(el).html()); 
-		}))
-			return null;
-		else
-			return parts.map(function(el) { return ($(el).val() || $(el).html()); }).join(' ').trim();
-	},
+	parts: parts,
 
 	src: function(value) {
 		return $(this).attr('src');
