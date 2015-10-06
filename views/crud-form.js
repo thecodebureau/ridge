@@ -73,8 +73,10 @@ module.exports = require('ridge/view').extend({
 			var namespace = key.split('.'),
 				getter = _getters[opts.get];
 			
+			var setter;
+
 			if(opts.set) {
-				var setter = _setter.apply(null, opts.set.map(function(name) {
+				setter = _setter.apply(null, opts.set.map(function(name) {
 					return _setters[name];
 				}));
 
@@ -85,7 +87,7 @@ module.exports = require('ridge/view').extend({
 						ref = ref[namespace[i]];
 					}
 
-					setter($el, ref || null);
+					setter($el, ref != null ? ref : null);
 				});
 			}
 
@@ -99,15 +101,18 @@ module.exports = require('ridge/view').extend({
 					var obj = _.clone(_form.model.get(namespace[0])) || {};
 
 					for(var i = 1, ref = obj; i < namespace.length - 1; i++) {
-						if(!ref[namespace[i]]) ref[namespace[i]] = {};
+						if(_.isObject(ref[namespace[i]])) ref[namespace[i]] = _.clone(ref[namespace[i]]);
+						else if(!ref[namespace[i]]) ref[namespace[i]] = {};
 
 						ref = ref[namespace[i]];
 					}
 
 					// remove or set the property depending on if value is set
-					if(value)
+					if(value != null) {
+						if(!ref[namespace[i]]) ref[namespace[i]] = {};
+
 						ref[namespace[i]] = value;
-					else
+					} else
 						delete ref[namespace[i]];
 
 					// TODO perhaps unset if obj is empty element
@@ -118,7 +123,7 @@ module.exports = require('ridge/view').extend({
 				} else {
 					// single level namespace, simply set or unset the model attribute
 					// depending if value is set
-					if(value)
+					if(value != null)
 						_form.model.set(namespace[0], value, { internalUpdate: true });
 					else
 						_form.model.unset(namespace[0], { internalUpdate: true });
