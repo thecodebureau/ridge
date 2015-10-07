@@ -4,10 +4,13 @@ module.exports = require('ridge/view').extend({
 	initialize: function(options) {
 		var _view = this;
 
-		_.extend(this, _.pick(options, 'modelTemplate'));
+		_.extend(this, _.pick(options, 'modelTemplate', 'modelView'));
 
 		if(_.isString(options.collection))
 			this.collection = new app.collections[options.collection]();
+
+		if(_.isString(this.modelView))
+			this.modelView = app.views[this.modelView];
 
 		_view.listenTo(_view.collection, 'reset', _view.reset);
 	},
@@ -25,9 +28,14 @@ module.exports = require('ridge/view').extend({
 	},
 
 	renderModel: function(model) {
-		new app.views.CrudModel({
-			model: model,
-			template: this.modelTemplate
-		}).enter(this.container);
+		if(this.modelView)
+			new this.modelView({
+				model: model
+			}).enter(this.container);
+		else
+			new app.views.CrudModel({
+				model: model,
+				template: this.modelTemplate
+			}).enter(this.container);
 	},
 });
