@@ -2,9 +2,11 @@ var app = require('ridge');
 
 module.exports = require('ridge/view').extend({
 	events: {
+		'click button,select,input': function(e) {
+			e.stopPropagation();
+		},
 		'click button': function(e) {
 			e.preventDefault();
-			e.stopPropagation();
 		},
 		'click button[data-command="publish"]': 'publish',
 		'click button[data-command="unpublish"]': 'unpublish',
