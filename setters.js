@@ -37,18 +37,14 @@ module.exports = {
 	},
 
 	src: function(el, value) {
-		$(this).attr('src', value);
+		$(el).attr('src', value);
 	},
 
 	selectMultiple: function(el, value) {
-		var _el = this;
-
-		if(!value) $(this).val(null);
+		if(!value) $(el).val(null);
 		else
 			value.forEach(function(value) {
-				var $el = $(_el).find('[value="' + value + '"]');
-				
-				$el.prop('selected', true);
+				$(el).find('[value="' + value + '"]').prop('selected', true);
 			});
 	}
 };
