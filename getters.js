@@ -52,11 +52,11 @@ module.exports = {
 
 	parts: parts,
 
-	src: function(value) {
-		return $(this).attr('src');
+	src: function(el) {
+		return $(el).attr('src');
 	},
 
-	selectMultiple: function(value) {
-		return $(this.val());
+	selectMultiple: function(el) {
+		return $(el).val();
 	}
 };
