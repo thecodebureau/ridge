@@ -12,10 +12,5 @@ module.exports = View.extend({
 		}
 
 		View.call(this, options);
-	},
-
-	attach: function() {
-		this.initializeViews();
-
 	}
 });
