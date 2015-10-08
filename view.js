@@ -206,13 +206,19 @@ var View = Backbone.View.extend({
 
 	// animated remove
 	remove: function() {
-		this.$el.leave();
-		return this.stopListening();
-	},
+		this.stopListening();
 
-	stopListening: function() {
-		Backbone.Events.stopListening.apply(this, arguments);
-		_.invoke(this.views, 'stopListening');
+		var subViews = this.views;
+
+		while(subViews && subViews.length > 0) {
+			_.invoke(subViews, 'stopListening');
+
+			subViews = _.compact(_.flatten(_.pluck(subViews, 'views')));
+		}
+
+		this.$el.leave();
+
+		return this;
 	}
 });
 
