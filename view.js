@@ -79,6 +79,14 @@ function createViews(view) {
 	}));
 }
 
+function getElements(view) {
+	return _.mapObject(view.elements, function(selector, name) {
+		selector = _.isString(selector) ? selector : selector.selector;
+
+		return view.$(selector);
+	});
+}
+
 var View = Backbone.View.extend({
 	// Promise factory function using view as the context with callbacks
 	Promise: function(resolver) {
@@ -91,8 +99,6 @@ var View = Backbone.View.extend({
 		// we clone to prevent views referencing the same object
 		this.data = options && options.data ? _.clone(options.data) : {};
 
-		if (!this.elements) this.elements = {};
-
 		Backbone.View.apply(this, arguments);
 
 		if(_.isString(this.model))
@@ -104,32 +110,9 @@ var View = Backbone.View.extend({
 		this.rendered = (this.el && this.el.firstChild) != null;
 
 		if (!this.rendered) this.render();
-		else if (this.attach) this.attach();
-
-		// this.ready(callbacks)
-		//
+		else this._attach();
 
 		this.ready = this.ready || $.Callbacks('once memory').fireWith(this).add;
-	},
-
-	convertElements: function() {
-		var view = this;
-		_.each(this.elements, function(element, key) {
-			if(/^\$/.test(key)) view.elements[key.slice(1)] = element[0];
-		});
-	},
-
-	initializeViews: function() {
-		var _view = this;
-
-		_view.$('[data-view]').each(function() {
-			var viewName = $(this).data('view');
-
-			var View = app.views[viewName];
-
-			// TODO destroy/remove all nested views when a PageView is removed.
-			if (View) new View({ el: this, data: _view.data });
-		});
 	},
 
 	render: function() {
@@ -176,7 +159,7 @@ var View = Backbone.View.extend({
 						parseElement(out, resolve);
 				});
 			});
-		}).done(updateElement, this.attach, function() { this.$el.dequeue(); })
+		}).done(updateElement, this._attach, function() { this.$el.dequeue(); })
 			.fail(Promise.error);
 
 		this.ready = rendering.done;
@@ -185,8 +168,10 @@ var View = Backbone.View.extend({
 		return this;
 	},
 
-	attach: function() {
+	_attach: function() {
 		this.views = createViews(this);
+		this.elements = getElements(this);
+		if(this.attach) this.attach();
 	},
 
 	// animated enter
