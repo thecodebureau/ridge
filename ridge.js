@@ -15,28 +15,22 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 
 	filters: dust.filters,
 
-	pages: new Backbone.Collection(null, {
-		model: Backbone.Model.extend({
-			url: function() {
-				return '/' + encodeURI(this.id);
-			},
-
-			parse: function(resp) {
-				return _.has(resp, 'data') ? resp.data : resp;
-			}
-		})
-	}),
-
 	el: document.documentElement,
 
 	events: {
-		'click a.nav': function (evt) {
-			var href = $(evt.currentTarget).attr('href');
-			var protocol = evt.currentTarget.protocol;
+		'click a[href]:not([target])': function(e) {
+			if (e.ctrlKey || e.metaKey || e.shiftKey || e.which == 2 || e.button == 2 || e.isDefaultPrevented())
+				return;
 
-			if (href && href.slice(0, protocol.length) !== protocol) {
-				evt.preventDefault();
-				Backbone.history.navigate(href, { trigger: true });
+			var href = e.currentTarget.href,
+				root = location.protocol + '//' + location.host + Backbone.history.root,
+				index = root.length - 1;
+
+			// if the URL matches the root
+			if (href.slice(0, index) + '/' == root) {
+				e.preventDefault();
+				// navigate to URL fragment without the root
+				Backbone.history.navigate(href.slice(index).replace(/^#/, '/#'), { trigger: true });
 			}
 		}
 	},
@@ -61,22 +55,29 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	initialize: function() {
 		var main = app.$('main');
 		app.elements = { main: main };
-		app.currentPage = new app.views.Page(_.extend({
-			model: app.pages.first(),
+
+		app.createPage(_.extend({
 			el: main.children()
 		}, main.data()));
 	},
 
-	navigate: function(options) {
+	createPage: function(options) {
+		var model = _.has(options, 'model') ? options.model : _.result(app.router, 'current');
+
+		if (model instanceof Backbone.Model) {
+			options = _.extend(model.pick('template'), options);
+			options.model = model;
+		}
+
+		return app.currentPage = new app.views.Page(options).ready(function() {
+			window.scrollTo(this.scrollX || 0, this.scrollY || 0);
+		});
+	},
+
+	switchPage: function(options) {
 		app.currentPage.remove();
 
-		// create new view for the page, insert it into DOM (with enter) and save
-		// the returned view to _app.currentPage
-		app.currentPage = new app.views.Page(options)
-			.enter(app.elements.main)
-			.ready(function() {
-				window.scrollTo(this.scrollX || 0, this.scrollY || 0);
-			});
+		app.createPage(options).enter(app.elements.main);
 
 		document.title = _.result(app.currentPage, 'title', document.title);
 	},
