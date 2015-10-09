@@ -1,13 +1,15 @@
 var app = require('ridge');
 
-module.exports = require('ridge/view').extend(_.extend({
+View = require('ridge/view').extend();
+
+_.extend(View.prototype, require('ridge/mixins/observe'), {
 	events: {
 		'submit': 'preventDefault'
 	},
 
 	subviews: {
 		SpytextField: '[data-spytext]',
-		ImageUpload: '.image-uploads',
+		ImageUpload: '.image-upload',
 		ModelControls: '.controls'
 	},
 
@@ -32,8 +34,8 @@ module.exports = require('ridge/view').extend(_.extend({
 			}
 		});
 
-		require('ridge/view').prototype.attach.apply(this, arguments);
-
 		this.observe();
 	},
-}, require('ridge/mixins/observe')));
+});
+
+module.exports = View;
