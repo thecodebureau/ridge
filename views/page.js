@@ -12,5 +12,16 @@ module.exports = View.extend({
 		}
 
 		View.call(this, options);
+	},
+
+	attach: function() {
+		var _view = this;
+		
+		_view.views = _.compact(_view.$('[data-view]').toArray().map(function(el) {
+			console.log(el);
+			var View = app.views[$(el).data('view')];
+
+			return View ? new View({ el: el, data: _view.data }) : null;
+		}));
 	}
 });
