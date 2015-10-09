@@ -1,8 +1,35 @@
-var app = require('./ridge');
+var dust = require('dustjs-linkedin');
 
 module.exports = Backbone.Router.extend({
 	routes: {
 		'*page': 'page'
+	},
+
+	// holds the current state and any pending state
+	states: new Backbone.Collection(null, {
+		model: Backbone.Model.extend({
+			url: function() {
+				return Backbone.history.root + encodeURI(decodeURI(this.id));
+			},
+
+			parse: function(resp) {
+				// load templates here so they are ready before any change event is triggered
+				_.each(resp && resp.compiled, dust.loadSource);
+
+				return _.has(resp, 'data') ? _.extend(_.pick(resp, 'template'), resp.data) : resp;
+			}
+		})
+	}),
+
+	current: function() {
+		return this.states.first();
+	},
+
+	initialize: function() {
+		this.listenTo(this.states, 'change:loading', function(state, value) {
+			this.loading = value;
+			if (!value) this.states.set(state); 	// removes previous state (if any)
+		});
 	},
 
 	execute: function(callback, args) {
@@ -18,7 +45,7 @@ module.exports = Backbone.Router.extend({
 			});
 
 			// urlencode
-			query = encodeURI(query).replace('%25', '%');
+			query = encodeURI(decodeURI(query));
 		}
 
 		this.params = params;
@@ -26,42 +53,34 @@ module.exports = Backbone.Router.extend({
 
 		args.push(query);
 
-		if (callback) return callback.apply(this, args);
+		this.loading = false;
+		this.states.remove(this.states.filter('loading'));
+
+		if (callback) callback.apply(this, args);
 	},
 
 	page: function(page, query) {
-		var router = this,
-			options = { model: page = app.pages.add({ id: page || '' }), query: query };
+		page = this.states.add({ id: page || '' });
+		page.set('query', query);
 
-		// initial route
-		if (!app.currentPage) return false;
-
-		if (page === router.loading) return;
+		// avoid fetching on initial route
+		if (this.states.length == 1) return;
 
 		if (page.has('template'))
-			loadView();
+			this.states.set(page);
 		else
-			(router.loading = page)
-				.fetch({ data: query })
-				.then(null, function(xhr) {
-					// transform error and set options
-					var resp = xhr.responseJSON,
-						error = _.extend(_.pick(xhr, 'status', 'statusText'), resp);
+			this.load(page, { data: query });
+	},
 
-					options = _.extend({ template: 'error' }, resp);
-					options.data = _.extend({ error: error }, options.data || resp);
-					return resp;
-				})
-				.always(function(resp) {
-					_.each(resp && resp.compiled, app.dust.loadSource);
-					if (router.loading === page)
-						loadView();
-				});
+	load: function(state, options) {
+		var xhr = state.set('loading', true).fetch(options);
 
-		function loadView() {
-			router.loading = false;
-			if (page !== app.currentPage.model)
-				app.navigate(_.defaults(options, page.pick('template')));
-		}
+		return xhr.fail(function(xhr) {
+			var attrs = state.parse(xhr.responseJSON);
+			state.set(_.extend({ template: 'error', error: attrs }, attrs));
+		})
+		.always(function() {
+			state.unset('loading');
+		});
 	}
 });
