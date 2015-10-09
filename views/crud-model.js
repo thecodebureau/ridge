@@ -3,6 +3,7 @@ var app = require('ridge');
 module.exports = require('ridge/view').extend({
 	events: {
 		'click button,select,input': function(e) {
+			e.preventDefault();
 			e.stopPropagation();
 		},
 		'click button': function(e) {
