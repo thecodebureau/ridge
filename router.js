@@ -25,10 +25,14 @@ module.exports = Backbone.Router.extend({
 		return this.states.first();
 	},
 
+	setCurrent: function(state) {
+		this.states.set(state, { current: true });
+	},
+
 	initialize: function() {
 		this.listenTo(this.states, 'change:loading', function(state, value) {
 			this.loading = value;
-			if (!value) this.states.set(state); 	// removes previous state (if any)
+			if (!value) this.setCurrent(state);
 		});
 	},
 
@@ -67,7 +71,7 @@ module.exports = Backbone.Router.extend({
 		if (this.states.length == 1) return;
 
 		if (page.has('template'))
-			this.states.set(page);
+			this.setCurrent(page);
 		else
 			this.load(page, { data: query });
 	},
