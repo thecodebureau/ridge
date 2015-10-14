@@ -16,7 +16,7 @@ module.exports = Backbone.Model.extend({
 	idAttribute: '_id',
 
 	isDirty: function() {
-		return !!this.originalAttributes && !_.isEqual(this.attributes, this.originalAttributes);
+		return !_.isEqual(this.attributes, this.originalAttributes);
 	},
 
 	reset: function() {
