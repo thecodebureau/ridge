@@ -54,8 +54,8 @@ module.exports = {
 				var setter = {};
 
 				function handler(model, value, opts) {
-					//if(opts && opts.internalUpdate) return;
-					if(setter.disabled) return;
+					if(opts && opts.internalUpdate) return;
+					//if(setter.disabled) return;
 
 					for(var i = 0, ref = model.changedAttributes(); ref && i < namespace.length; i++) {
 						ref = ref[namespace[i]];
@@ -76,7 +76,7 @@ module.exports = {
 					$el.on(getter.events.join(' '), function(e) {
 						var value = getter($el);
 
-						setter.disabled = true;
+						//setter.disabled = true;
 
 						if(namespace.length > 1) {
 							// if the we have namespace of more than one level we
@@ -115,7 +115,7 @@ module.exports = {
 								_form.model.unset(namespace[0], { internalUpdate: true });
 						}
 
-						delete setter.disabled;
+						//delete setter.disabled;
 					});
 				}
 
