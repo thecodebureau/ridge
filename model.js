@@ -1,43 +1,32 @@
 module.exports = Backbone.Model.extend({
-	constructor: function(attributes) {
+	constructor: function() {
 		Backbone.Model.apply(this, arguments);
 
-		this.on('sync', this._clearDirty);
-		this.on('change', this._updateDirty);
+		var _model = this;
 
-		this._clearDirty();
+		_model.originalAttributes = _.clone(_model.attributes);
 
-		return this;
-	},
+		_model.on('sync', function() {
+			_model.originalAttributes = _.clone(_model.attributes);
+		});
 
-	_clearDirty: function() {
-		this.dirtyAttributes = {};
-	},
-
-	_updateDirty: function(e) {
-		_.extend(this.dirtyAttributes, _.mapObject(this.changed, function(val) {
-			return (val === undefined) ? null : val;
-		}));
+		return _model;
 	},
 
 	idAttribute: '_id',
 
 	isDirty: function() {
-		return _.keys(this.dirtyAttributes).length !== 0;
+		return !!this.originalAttributes && !_.isEqual(this.attributes, this.originalAttributes);
 	},
 
-	sync: function () {
-		function done() {
-			_model._syncing = false;
-		}
-
+	reset: function() {
 		var _model = this;
 
-		_model._syncing = true;
-
-		_model.once('sync', done);
-		_model.once('error', done);
-
-		return Backbone.sync.apply(_model, arguments);
+		_.each(_model.attributes, function(value, key) {
+			if(_.has(_model.originalAttributes, key) && _model.originalAttributes[key] !== undefined)
+				_model.set(key, _model.originalAttributes[key]);
+			else
+				_model.unset(key);
+		});
 	}
 });

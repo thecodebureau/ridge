@@ -134,13 +134,8 @@ module.exports = require('ridge/view').extend({
 	},
 
 	reset: function() {
-		if(confirm('Are you sure you want to reset?'))
-			if(this.model.isNew()) {
-				this.model.clear();
-				this.model._clearDirty();
-				this.update();
-			} else {
-				this.model.fetch();
-			}
+		if(confirm('Are you sure you want to reset?')) {
+			this.model.reset();
+		}
 	},
 });
