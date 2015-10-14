@@ -142,8 +142,4 @@ $.Deferred = function( func ) {
 	return deferred;
 };
 
-module.exports = function(resolver, context) {
-	return new Promise(function(resolveWith) {
-		resolveWith(context, null, resolver, context);
-	});
-};
+module.exports = Promise;

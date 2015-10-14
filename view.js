@@ -90,7 +90,10 @@ function getElements(view) {
 var View = Backbone.View.extend({
 	// Promise factory function using view as the context with callbacks
 	Promise: function(resolver) {
-		return Promise(resolver, this);
+		var context = this;
+		return new Promise(function(resolveWith) {
+			resolveWith(context, null, resolver, context);
+		});
 	},
 
 	constructor: function(options) {
