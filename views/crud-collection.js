@@ -15,16 +15,24 @@ module.exports = require('ridge/view').extend({
 		_view.listenTo(_view.collection, 'reset', _view.reset);
 	},
 
-	attach: function() {
-		var container = this.$('.container');
+	reset: function (models, options) {
+		models.each(this.renderModel, this);
+	},
 
-		this.container = container.length > 0 ? container : this.$el;
+	attach: function() {
+		if(!this.container || (this.container[0] !== this.el && $.contains(document.documentElement, this.container[0]))) {
+			var container = this.$('.container');
+
+			this.container = container.length > 0 ? container : this.$el;
+		}
 		
 		this.collection.fetch({ reset: true });
 	},
 
-	reset: function (models, options) {
-		models.each(this.renderModel, this);
+	// override default render function so no errors are cause by lack
+	// of template but we still attach
+	render: function() {
+		this.attach();
 	},
 
 	renderModel: function(model) {
