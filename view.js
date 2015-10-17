@@ -127,21 +127,13 @@ var View = Backbone.View.extend({
 
 		var data = _.result(_view, 'data');
 
-		var args = arguments[0] === true ? _.rest(arguments) : null;
-
-		if(app.user)
-			data.user = app.user.toJSON();
-
 		if (_view.model) {
 			var modelData = _view.model.toJSON();
 
-			if(args)
-				data[_view.model.name.toCamelCase()] = modelData;
-			else
-				_.extend(data, modelData);
+			_.extend(data, modelData);
 		}
 
-		_view.renderTemplate(data).ready(args || arguments);
+		_view.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
 
 		return _view;
 	},
