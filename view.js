@@ -66,8 +66,10 @@ function createViews(view) {
 		var selector = options;
 		if ($.isPlainObject(options)) {
 			selector = options.selector;
+
+			_.defaults(options, defaults);
+
 			if (!selector) return new Subview(options);
-			else _.defaults(options, defaults);
 		} else {
 			options = _.clone(defaults);
 		}
