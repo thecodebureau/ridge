@@ -18,25 +18,5 @@ module.exports = Backbone.Collection.extend({
 		}
 
 		return _collection;
-	},
-
-	reset: function (models, options) {
-		var _collection = this;
-
-		options = options || {};
-
-		for (var i = 0, l = _collection.models.length; i < l; i++) {
-			_collection._removeReference(_collection.models[i], options);
-		}
-
-		options.previousModels = _collection.models;
-
-		_collection._reset();
-
-		models = _collection.add(models, _.extend({silent: true}, options));
-
-		if (!options.silent) _collection.trigger('reset', _collection, options);
-
-		return models;
 	}
 });
