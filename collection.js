@@ -18,5 +18,16 @@ module.exports = Backbone.Collection.extend({
 		}
 
 		return _collection;
+	},
+
+	parse: function(resp) {
+		if(resp.totalCount) {
+			this.totalCount = resp.totalCount;
+
+			return _.find(resp, _.isArray);
+		}
+
+		return resp;
 	}
+
 });
