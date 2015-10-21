@@ -57,6 +57,7 @@ function updateElement(html, tag, endTag, tagName) {
 function createViews(view) {
 	return _.flatten(_.map(view.subviews, function(options, name) {
 		var defaults = {
+			collection: view.collection,
 			model: view.model,
 			data: view.data
 		};
@@ -112,7 +113,7 @@ var View = Backbone.View.extend({
 		if(_.isString(this.collection))
 			this.collection = new app.collections[this.collection]();
 
-		this.rendered = (this.el && this.el.firstChild) != null;
+		this.rendered = (this.el && (this.el.children.length > 0 || !!this.el.textContent.trim()));
 
 		if (!this.rendered) this.render();
 		else this._attach();
