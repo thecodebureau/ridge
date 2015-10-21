@@ -1,6 +1,11 @@
 window.broadcast = _.extend({}, Backbone.Events);
 
 module.exports = {
+	events: {
+		'click a.login': 'toggleLoginForm',
+		'click a.logout': 'logout'
+	},
+
 	toggleLoginForm: function(e) {
 		var app = this;
 		if(e) e.preventDefault();
