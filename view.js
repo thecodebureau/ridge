@@ -1,3 +1,5 @@
+require('jquery-valet');
+
 /* Base view */
 
 var dust = require('dustjs-linkedin'),

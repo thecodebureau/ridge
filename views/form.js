@@ -1,3 +1,5 @@
+require('jquery-jsonify');
+
 var app = require('../ridge');
 
 module.exports = require('../view').extend({

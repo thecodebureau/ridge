@@ -1,8 +1,3 @@
-require('poirot');
-require('jquery-valet');
-require('jquery-ancestors');
-require('jquery-jsonify');
-
 require('./util/dust-mod');
 
 var dust = require('dustjs-linkedin');
