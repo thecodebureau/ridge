@@ -21,7 +21,7 @@ module.exports = Backbone.Collection.extend({
 	},
 
 	parse: function(resp) {
-		if(resp.totalCount) {
+		if(_.isNumber(resp.totalCount)) {
 			this.totalCount = resp.totalCount;
 
 			return _.find(resp, _.isArray);
