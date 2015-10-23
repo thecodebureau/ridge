@@ -31,7 +31,7 @@ module.exports = require('ridge/view').extend({
 	},
 
 	initialize: function(opts) {
-		this.listenTo(this.model, 'change:query', this.attach);
+		this.listenTo(app.router.current(), 'change:query', this.attach);
 	},
 
 	attach: function() {

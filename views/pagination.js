@@ -1,4 +1,5 @@
-var View = require('ridge/view');
+var app = require('ridge'),
+	View = require('ridge/view');
 
 module.exports = View.extend({
 	template: 'pagination',
@@ -8,7 +9,7 @@ module.exports = View.extend({
 	},
 
 	render: function() {
-		this.data.totalCount = this.collection.totalCount;
+		app.router.current().set('totalCount', this.collection.totalCount);
 
 		return View.prototype.render.apply(this);
 	}
