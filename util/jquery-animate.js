@@ -21,8 +21,9 @@ function enter() {
 	transition($(this).addClass('active').removeClass('leave'));
 }
 
-function leave() {
-	$(this).addClass('animate leave');
+function leave(options) {
+	options = options || {};
+	$(this).addClass('animate leave').addClass(options.className);
 
 	// force redraw
 	this.offsetHeight;
@@ -36,16 +37,20 @@ function remove(next) {
 	next();
 }
 
-function hide(next) {
-	$(this).addClass('hidden').removeClass('visible');
+function hide(options) {
+	options = options || {};
 
-	next();
+	return function(next) {
+		$(this).addClass('hidden').removeClass('visible').removeClass(options.className);
+
+		next();
+	}
 }
 
 function setHeight(next) {
 	$(this).css('height', this.scrollHeight);
 
-	next();
+	if(next) next();
 }
 
 $.fn.extend({
@@ -73,21 +78,30 @@ $.fn.extend({
 
 		return this.queue(enter).queue(function(next) {
 			$(this).removeClass('animate enter active')
-				.removeClass(options.className);
+				.removeClass(options.className).css({ height: '' });
 
 			next();
 		});
 	},
 
-	leave: function() {
-		return this.stop().queue([ leave, remove ]);
+	leave: function(options) {
+		return this.stop().queue([ leave.bind(this, options), remove ]);
 	},
 
 	show: function(options) {
+		$(this).removeClass('hidden').addClass('visible');
+
 		return this.enter(null, options);
 	},
 
 	hide: function(options) {
-		return this.stop().queue([ leave, hide ]);
+		if(options.animateHeight) {
+			setHeight.call(this[0]);
+
+			// needed for some reason
+			this.css('overflow');
+		}
+
+		return this.stop().queue([ leave.bind(this, options), hide(options) ]);
 	}
 });

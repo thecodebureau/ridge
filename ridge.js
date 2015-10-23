@@ -70,9 +70,9 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	switchPage: function(options) {
-		app.currentPage.remove();
+		app.currentPage.remove(options);
 
-		app.createPage(options).enter(app.elements.main);
+		app.createPage(options).enter(app.elements.main, options);
 
 		document.title = _.result(app.currentPage, 'title', document.title);
 	},
