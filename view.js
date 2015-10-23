@@ -1,4 +1,4 @@
-require('jquery-valet');
+require('./util/jquery-animate');
 
 /* Base view */
 
@@ -184,13 +184,13 @@ var View = Backbone.View.extend({
 		e.preventDefault();
 	},
 
-	alternate: function() {
-		this.$el.alternate();
+	toggle: function(options) {
+		this.$el.toggle(options);
 		return this;
 	},
 
 	// animated remove
-	remove: function() {
+	remove: function(options) {
 		this.stopListening();
 
 		var subViews = this.views;
@@ -201,7 +201,7 @@ var View = Backbone.View.extend({
 			subViews = _.compact(_.flatten(_.pluck(subViews, 'views')));
 		}
 
-		this.$el.leave();
+		this.$el.leave(options);
 
 		return this;
 	}
