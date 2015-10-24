@@ -66,6 +66,8 @@ function createViews(view) {
 
 		var Subview = app.views[name];
 
+		if(!_.isFunction(Subview)) throw new Error('No view "' + name + '" found, or it is not a function!');
+
 		var selector = options;
 		if ($.isPlainObject(options)) {
 			selector = options.selector;
