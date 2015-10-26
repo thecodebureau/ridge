@@ -3,7 +3,7 @@ function html(el) {
 	return $(el).html();
 }
 
-html.events = [ 'change', 'input' ];
+html.events = [ 'input' ];
 
 function value(el) {
 	var $el = $(el);
@@ -12,7 +12,12 @@ function value(el) {
 		if((/checkbox/i).test($el[0].type))
 			return $el.is(':checked');
 
-		return $el.val();
+		var val = $el.val();
+
+		if(val === 'on' || val === 'true') val = true;
+		else if(val === 'undefined') val = undefined;
+
+		return val;
 	} else {
 		if((/radio/i).test($el[0].type)) {
 			return $el.filter(':checked').val();
@@ -29,7 +34,17 @@ function value(el) {
 	}
 }
 
-value.events = [ 'input', 'change', 'blur' ];
+value.events = function(handler) {
+	return {
+		'blur change': function(e) {
+			console.log('change');
+			handler(e);
+
+			$(this).off('blur change').on('blur change', e.data, handler)
+				.on('input', e.data, handler);
+		}
+	};
+};
 
 function parts(el) {
 	var _parts = $(el).find('[data-part]').toArray();
