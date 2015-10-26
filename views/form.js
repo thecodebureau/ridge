@@ -1,63 +1,102 @@
-require('jquery-jsonify');
+//require('../util/jquery-jsonify');
+//require('../util/validate');
 
 var app = require('../ridge');
 
-module.exports = require('../view').extend({
+var View = require('../view').extend();
+
+_.extend(View.prototype, require('../mixins/observe'), {
 	tagName: 'form',
 
+	elements: {
+		button: 'button'
+	},
+
 	events: {
-		'focus input,textarea': 'focus',
-		'blur input,textarea': 'blur',
-		'input input,textarea': 'updateValue',
-		'mouseover .invalid>label.icon': 'hover',
-		'mouseout .invalid>label.icon': 'unhover'
+		'focus input,textarea': 'onFocus',
+		'blur input,textarea': 'onBlur',
+		'input input,textarea': 'onInput',
+		'click label[for]': 'labelClick',
+		'change select': 'onInput',
+		'mouseover .invalid>label.icon': 'onHover',
+		'mouseout .invalid>label.icon': 'onUnhover'
 	},
 
 	initialize: function(opts) {
-		_.extend(this, _.pick(opts, 'rules', 'messages', 'onError', 'onSuccess', 'submit'));
+		_.extend(this, _.pick(opts, 'validation', 'rules', 'messages', 'onError', 'onSuccess', 'onComplete', 'submit'));
+
+		this.bindings = _.mapObject(this.bindings, function(value, key) {
+			return {
+				selector: '[name="' + key + '"]',
+				type: value
+			};
+		});
 
 		this.$el.on('submit', this.submit.bind(this));
+
+		var id = _.last(window.location.pathname.split('/'));
+
+		this.errors = {};
+
+		this.listenTo(this.model, 'invalid', this.placeErrors);
+		this.listenTo(this.model, 'change', this.setValid);
+
+		if(!this.model.isNew() && _.keys(this.model.attributes) === 1)
+			this.model.fetch();
 	},
 
 	attach: function() {
+		this.$el.attr('novalidate', 'novalidate');
+
 		var _view = this;
 
-		this.els = {
-			button: this.$('button')[0]
-		};
-
-		var $validator = this.$el.validate(this.rules, this.messages);
+		//var $validator = this.$el.validate(this.rules, this.messages);
 
 		this.$('[name]:not(:disabled)').each(function() {
-			_view.updateValue({ currentTarget: this });
+			_view.onInput({ currentTarget: this });
 		});
+
+		this.observe({ validate: true });
 
 		if($.fn.placeholder)
 			this.$('input,textarea').placeholder();
 	},
 
-	hover: function() {
+	labelClick: function(e) {
+		var name = $(e.currentTarget).attr('for');
+
+		this.$('[name="' + name + '"]').focus();
+	},
+
+	onHover: function() {
 		this.$el.addClass('hide-errors');
 	},
 
-	unhover: function() {
+	onUnhover: function() {
 		this.$el.removeClass('hide-errors');
 	},
 
-	updateValue: function(e) {
-		$(e.currentTarget).closest('div').toggleClass('not-empty', !!e.currentTarget.value);
+	onInput: function(e) {
+		var target = e.currentTarget,
+			value = target.value;
+
+		if(value === 'undefined') value = undefined;
+
+		$(target).closest('form div.container').toggleClass('not-empty', !!value);
 	},
 
-	focus: function(e) {
-		$(e.currentTarget).closest('div').addClass('focus');
+	onFocus: function(e) {
+		$(e.currentTarget).closest('form div.container').addClass('focus');
 	},
 
-	blur: function(e) {
-		$(e.currentTarget).closest('div').removeClass('focus');
+	onBlur: function(e) {
+		$(e.currentTarget).closest('form div.container').removeClass('focus');
 	},
 
-	onError: function(message) {
+	onError: function(xhr, textStatus, error) {
 		var _view = this;
+
+		var message = xhr.responseJSON;
 
 		if(_view.messageView)
 			_view.messageView.remove();
@@ -69,6 +108,11 @@ module.exports = require('../view').extend({
 
 	onSuccess: function(data, statusText, xhr) {
 		this.trigger('submitted', data, statusText, xhr);
+	},
+
+	onComplete: function(xhr, textStatus) {
+		_view.els.button.disabled = false;
+		$(document.body).removeClass('progress');
 	},
 
 	submit: function(e) {
@@ -85,18 +129,38 @@ module.exports = require('../view').extend({
 				url: this.$el.attr('action'),
 				data: this.$el.JSONify(),
 				dataType: 'json',
-				success: function(data, statusText, xhr) {
-					_view.onSuccess(data, statusText, xhr);
-				},
-				error: function(xhr) {
-					_view.onError(xhr.responseJSON);
-				},
-				complete: function() {
-					_view.els.button.disabled = false;
-					$(document.body).removeClass('progress');
-				}
+				success: _view.onSuccess,
+				error: _view.onError,
+				complete: _view.onComplete
 			});
 		}
+	},
 
-	}
+	setValid: function removeError(model, options) {
+		var _view = this;
+
+		_.each(model.changedAttributes(null, { dotNotation: true }), function(value, attr) {
+			_view.$('[name="' + attr + '"]').closest('form .container')
+				.removeClass('invalid').addClass('valid')
+				.find('label.error').remove();
+		});
+	},
+
+	placeErrors: function placeErrors(model, errors, options) {
+		var _view = this;
+
+		_.each(errors, function(error, property) {
+			var $container = _view.$('[name="' + property + '"]').closest('form .container'),
+				$label = $container.find('label.error');
+
+			if($label.length === 0)
+				$('<label class="error ' + property + '"><span>' + error + '</span></label>').appendTo($container);
+			else if($label.text() !== error)
+				$label.text(error);
+
+			$container.removeClass('valid').addClass('invalid');
+		});
+	},
 });
+
+module.exports = View;

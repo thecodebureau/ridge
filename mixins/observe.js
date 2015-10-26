@@ -24,39 +24,18 @@ function _filter(/* filters */) {
 }
 
 module.exports = {
-	observe: function() {
-		var _form = this;
+	observe: function(opts) {
+		var _view = this;
 
 		this._bindings = [];
 
-		_.each(this.bindings, function(opts, key) {
-			function setupBinding(opts) {
-				if(_.isString(opts))
-					opts = {
-						hook: key,
-						type: opts
-					};
-
-				if(opts.hook) opts.selector = '[data-hook="' + opts.hook + '"]';
-
-				if(opts.type) opts.get = opts.set = opts.type;
-
-				if(!_.isArray(opts.set)) opts.set = [ opts.set ];
-
-				var $el = _form.$(opts.selector);
-
-				if($el.length === 0) return;
-
-				var namespace = key.split('.'),
-					getter = _getters[opts.get];
-
-				// is object so we can set setter.disabled without having to check
-				var setter = {};
-
-				function handler(model, value, opts) {
-					if(opts && opts.internalUpdate) return;
+		_.each(this.bindings, function(binding, key) {
+			function setupBinding(binding) {
+				function setHandler(model, value, binding) {
+					if(binding && binding.internalUpdate) return;
 					//if(setter.disabled) return;
 
+					// TODO should probably be able to loop through value
 					for(var i = 0, ref = model.changedAttributes(); ref && i < namespace.length; i++) {
 						ref = ref[namespace[i]];
 					}
@@ -64,73 +43,69 @@ module.exports = {
 					setter($el, ref != null ? ref : null);
 				}
 
-				if(opts.set) {
-					setter = _setter.apply(null, opts.set.map(function(name) {
+				function getHandler(e) {
+					var value = getter($el) || undefined;
+
+					_view.model.set(namespace.join('.'), value, setOptions);
+				}
+
+				if(_.isString(binding))
+					binding = {
+						hook: key,
+						type: binding
+					};
+
+				if(binding.hook) binding.selector = '[data-hook="' + binding.hook + '"]';
+
+				if(binding.type) binding.get = binding.set = binding.type;
+
+				if(!_.isArray(binding.set)) binding.set = [ binding.set ];
+
+				var $el = _view.$(binding.selector);
+
+				if($el.length === 0) return;
+
+				var namespace = key.split('.'),
+					getter = _getters[binding.get],
+					setter = {};
+
+				// is object so we can set setter.disabled without having to check
+
+				if(binding.set) {
+					setter = _setter.apply(null, binding.set.map(function(name) {
 						return _setters[name];
 					}));
 
-					_form.listenTo(_form.model, 'change:' + namespace[0], handler);
+					_view.listenTo(_view.model, 'change:' + namespace[0], setHandler);
 				}
 
+				var setOptions = {
+					validate: _.isBoolean(binding.validate) ? binding.validate : !!(opts && opts.validate),
+					internalUpdate: true
+				};
+
 				if(getter && getter.events) {
-					$el.on(getter.events.join(' '), function(e) {
-						var value = getter($el);
+					var events = _.isFunction(getter.events) ? getter.events(getHandler) : _.object(getter.events.map(function(eventName) {
+						return [ eventName, getHandler ];
+					}));
 
-						//setter.disabled = true;
-
-						if(namespace.length > 1) {
-							// if the we have namespace of more than one level we
-							// need to clone the object, and iterate until we
-							// find the right property to set
-							var obj = _.clone(_form.model.get(namespace[0])) || {};
-
-							for(var i = 1, ref = obj; i < namespace.length - 1; i++) {
-								if(_.isObject(ref[namespace[i]])) ref[namespace[i]] = _.clone(ref[namespace[i]]);
-								else if(!ref[namespace[i]]) ref[namespace[i]] = {};
-
-								ref = ref[namespace[i]];
-							}
-
-							// remove or set the property depending on if value is set
-							if(value != null) {
-								if(ref[namespace[i]] && ref[namespace[i]] === value) return;
-
-								ref[namespace[i]] = value;
-							} else
-								delete ref[namespace[i]];
-
-							// TODO perhaps unset if obj is empty element
-							if(_.isEmpty(obj))
-								_form.model.unset(namespace[0], { internalUpdate: true });
-							else
-								_form.model.set(namespace[0], obj, { internalUpdate: true });
-						} else {
-							// single level namespace, simply set or unset the model attribute
-							// depending if value is set
-							if(value != null) {
-								if(_form.model.get(namespace[0]) === value) return;
-
-								_form.model.set(namespace[0], value, { internalUpdate: true });
-							} else
-								_form.model.unset(namespace[0], { internalUpdate: true });
-						}
-
-						//delete setter.disabled;
+					_.each(events, function(handler, eventName) {
+						$el.on(eventName, handler);
 					});
 				}
 
-				_form._bindings.push({
+				_view._bindings.push({
 					$el: $el,
 					el: $el[0],
 					getter: getter,
 					setter: setter,
 					namespace: key.split('.'),
-					handler: handler
+					setHandler: setHandler
 				});
 			}
 
-			if(_.isArray(opts)) opts.forEach(setupBinding);
-			else setupBinding(opts);
+			if(_.isArray(binding)) binding.forEach(setupBinding);
+			else setupBinding(binding);
 		});
 	},
 
@@ -165,5 +140,5 @@ module.exports = {
 
 			binding.setter(binding.el, ref);
 		});
-	}
+	},
 };
