@@ -7,17 +7,23 @@ module.exports = {
 		var $el = $(el);
 
 		if($el[0].type === 'radio' || $el[0].type === 'checkbox') {
-			$el.prop('checked', false);
+			if($el.length === 1) {
+				$el.prop('checked', !!value);
+			} else {
+				$el.prop('checked', false);
 
-			if(value)
-				$el.filter((_.isArray(value) ? value : [ value ]).map(function(value) {
-					return '[value="' + value + '"]';
-				}).join(',')).prop('checked', true);
+				if(value)
+					$el.filter((_.isArray(value) ? value : [ value ]).map(function(value) {
+						return '[value="' + value + '"]';
+					}).join(',')).prop('checked', true);
+			}
 		} else {
 			if(value != null) value = value.toString();
 
 			$(el).val(value);
 		}
+
+		$el.trigger('change', { internalUpdate: true });
 	},
 
 	published: function(el, value) {
