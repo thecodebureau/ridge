@@ -104,7 +104,7 @@ var View = Backbone.View.extend({
 	},
 
 	constructor: function(options) {
-		_.extend(this, _.pick(options, 'template', 'parent', 'bindings'));
+		_.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews'));
 
 		// we clone to prevent views referencing the same object
 		this.data = options && options.data ? _.clone(options.data) : {};
