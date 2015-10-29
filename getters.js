@@ -3,7 +3,7 @@ function html(el) {
 	return $(el).html();
 }
 
-html.events = [ 'input' ];
+html.events = [ 'blur', 'input', 'change' ];
 
 function value(el) {
 	var $el = $(el);
@@ -37,7 +37,6 @@ function value(el) {
 value.events = function(handler) {
 	return {
 		'blur change': function(e) {
-			console.log('change');
 			handler(e);
 
 			$(this).off('blur change').on('blur change', e.data, handler)
