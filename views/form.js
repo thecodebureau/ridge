@@ -13,30 +13,31 @@ _.extend(View.prototype, require('../mixins/observe'), {
 	},
 
 	events: {
-		'focus input,textarea': 'onFocus',
-		'blur input,textarea': 'onBlur',
-		'input input,textarea': 'onInput',
-		'click label[for]': 'labelClick',
-		'change select': 'onInput',
+		'focus input,textarea,[data-spytext]': 'onFocus',
+		'blur input,textarea,[data-spytext]': 'onBlur',
+		'input input,textarea,[data-spytext]': 'onChange',
+		'change select,input,textarea,[data-spytext]': 'onChange',
+		'click label': 'labelClick',
 		'mouseover .invalid>label.icon': 'onHover',
 		'mouseout .invalid>label.icon': 'onUnhover'
 	},
 
 	initialize: function(opts) {
-		_.extend(this, _.pick(opts, 'validation', 'rules', 'messages', 'onError', 'onSuccess', 'onComplete', 'submit'));
+		_.extend(this, _.pick(opts, 'onError', 'onSuccess', 'onComplete', 'submit'));
 
-		this.bindings = _.mapObject(this.bindings, function(value, key) {
-			return {
+		// use properties from model validation to set up more bindings.
+		// all model validation properties are assumed to be 'value' getter
+		// and all selectors in form view default to [name=""] instead of [data-hook=""]
+		this.bindings = _.mapObject(_.defaults(this.bindings || {}, _.mapObject(this.model.validation, function(value, key) {
+			return 'value';
+		})), function(value, key) {
+			return _.isObject(value) ? value : {
 				selector: '[name="' + key + '"]',
 				type: value
 			};
 		});
 
-		this.$el.on('submit', this.submit.bind(this));
-
-		var id = _.last(window.location.pathname.split('/'));
-
-		this.errors = {};
+		this.delegate('submit', this.submit.bind(this));
 
 		this.listenTo(this.model, 'invalid', this.placeErrors);
 		this.listenTo(this.model, 'change', this.setValid);
@@ -50,22 +51,23 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 		var _view = this;
 
-		//var $validator = this.$el.validate(this.rules, this.messages);
-
-		this.$('[name]:not(:disabled)').each(function() {
-			_view.onInput({ currentTarget: this });
-		});
-
 		this.observe({ validate: true });
+
+		this.$('[data-spytext],[name]:not(:disabled)').each(function() {
+			// change is triggered mainly so that getter events are changed from
+			// only 'change' to 'input change', see the 'value' getter
+			if(this.checked || !this.checked && this.value && this.value !== 'undefined')
+				$(this).trigger('change');
+
+			_view.onChange({ currentTarget: this });
+		});
 
 		if($.fn.placeholder)
 			this.$('input,textarea').placeholder();
 	},
 
 	labelClick: function(e) {
-		var name = $(e.currentTarget).attr('for');
-
-		this.$('[name="' + name + '"]').focus();
+		$(e.currentTarget).siblings('input,textarea,[data-spytext]').focus();
 	},
 
 	onHover: function() {
@@ -76,9 +78,9 @@ _.extend(View.prototype, require('../mixins/observe'), {
 		this.$el.removeClass('hide-errors');
 	},
 
-	onInput: function(e) {
+	onChange: function(e) {
 		var target = e.currentTarget,
-			value = target.value;
+			value = target.nodeName === 'DIV' ? target.textContent.trim() : target.value;
 
 		if(value === 'undefined') value = undefined;
 
@@ -111,7 +113,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 	},
 
 	onComplete: function(xhr, textStatus) {
-		_view.els.button.disabled = false;
+		this.elements.button.prop('disabled', false);
 		$(document.body).removeClass('progress');
 	},
 
@@ -120,19 +122,21 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 		e.preventDefault();
 		
-		if(this.$el.valid()) {
-			this.els.button.disabled = true;
+		this.$('input,textarea,select').trigger('change');
+
+		if(this.model.isValid()) {
 			$(document.body).addClass('progress');
 
-			$.ajax({
-				method: 'POST',
-				url: this.$el.attr('action'),
-				data: this.$el.JSONify(),
-				dataType: 'json',
-				success: _view.onSuccess,
-				error: _view.onError,
-				complete: _view.onComplete
-			});
+			this.elements.button.prop('disabled', true);
+
+			if(this.model.isValid()) {
+				return this.model.save(null, {
+					success: this.onSuccess,
+					error: this.onError,
+					complete: this.onComplete,
+					context: this
+				});
+			}
 		}
 	},
 
@@ -140,7 +144,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 		var _view = this;
 
 		_.each(model.changedAttributes(null, { dotNotation: true }), function(value, attr) {
-			_view.$('[name="' + attr + '"]').closest('form .container')
+			_view.$('[data-name="' + attr + '"],[name="' + attr + '"]').closest('form .container')
 				.removeClass('invalid').addClass('valid')
 				.find('label.error').remove();
 		});
@@ -150,7 +154,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 		var _view = this;
 
 		_.each(errors, function(error, property) {
-			var $container = _view.$('[name="' + property + '"]').closest('form .container'),
+			var $container = _view.$('[data-name="' + property + '"],[name="' + property + '"]').closest('form .container'),
 				$label = $container.find('label.error');
 
 			if($label.length === 0)
