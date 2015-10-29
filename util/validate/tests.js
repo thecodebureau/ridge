@@ -35,17 +35,18 @@ function minlength(number) {
 }
 
 function required(value) {
-	return !!value || value === 0;
+	if(/^</.test(value))
+		return value.split(/<.*?>/).join('').trim();
+	else 
+		return !!value || value === 0;
 }
 
 required._name = 'required';
 
-function equalTo(selector) {
+function equalTo(property) {
 	function fnc(value) {
-		return value == element.value;
+		return value === this.get(property);
 	}
-
-	var element = $(selector)[0];
 
 	fnc._parameters = _.toArray(arguments);
 
