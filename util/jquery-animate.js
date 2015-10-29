@@ -95,7 +95,7 @@ $.fn.extend({
 	},
 
 	hide: function(options) {
-		if(options.animateHeight) {
+		if(options && options.animateHeight) {
 			setHeight.call(this[0]);
 
 			// needed for some reason
