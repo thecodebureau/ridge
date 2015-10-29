@@ -18,7 +18,6 @@ function validator(tests, thisArg) {
 
 		for(var i = 0; i < tests.length; i++) {
 			var obj = tests[i];
-
 			if (!obj.fnc.call(thisArg, value)) {
 				return obj.message;
 			}
@@ -26,7 +25,7 @@ function validator(tests, thisArg) {
 	};
 }
 
-function setupValidation(validation, attr) {
+function setupValidation(validation, attr, model) {
 	var tests = [];
 
 	_.each(validation, function(options, testName) {
@@ -43,24 +42,28 @@ function setupValidation(validation, attr) {
 		}
 	});
 
-	return validator(tests, _model);
+	return validator(tests, model);
 }
 
-return function(attrs, options) {
+module.exports = function(attrs, options) {
 	var _model = this;
 
 	var errors = {};
 
-	_.each(_model.validation, function(validator, key, validators) {
-		if (!_.isFunction(validator))
-			validator = validators[key] = setupValidation(validator, key);
+	_.each(attrs, function(val, key) {
+		if (_.has(_model.validation, key)) {
+			if (!_.isFunction(_model.validation[key]))
+				_model.validation[key] = setupValidation(_model.validation[key], key, _model);
 
-		var error = validator.call(_model, _model.get(key));
+			var error = _model.validation[key].call(_model, attrs[key]);
 
-		if(error) 
-			errors[key] = error;
-
+			if(error) 
+				errors[key] = error;
+		}
 	});
 
-	return !_.isEmpty(errors) || errors;
+	if(!_.isEmpty(errors))
+		return errors;
 };
+
+
