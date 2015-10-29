@@ -15,37 +15,27 @@ function dotNotation(obj) {
 	return out;
 }
 
-// returns a checker function which runs all
-// validator functions in the validators array
-// enable string formatting like in console log, ie console.log('I like to %s a lot', 'poop') > "I like to poop alot"
-function format(str) {
-	var args = _.rest(arguments);
+function get(obj, path) {
+	path = path.split('.');
 
-	return !args.length ? str : str.replace(/%[a-zA-Z]/, function(match) {
-		return args.shift() || match;
-	});
+	while (obj != null && path.length)
+		obj = obj[path.shift()];
+
+	return obj;
 }
 
-function validator(tests, thisArg) {
-	return function(value) {
-		if(tests[0].fnc._name !== 'required' && !_tests.required(value)) return;
-
-		for(var i = 0; i < tests.length; i++) {
-			var obj = tests[i];
-
-			if (!obj.fnc.call(thisArg, value)) {
-				return obj.message;
-			}
-		}
-	};
-}
-
-
-var _tests = require('./util/validate/tests'),
-	_messages = require('./util/validate/messages');
+var _validate = Backbone.Model.prototype._validate;
 
 module.exports = Backbone.Model.extend({
 	constructor: function(attrs, opts) {
+		this.on('change', function(model) {
+			_.each(model.flattened, function(path) {
+				delete model.attributes[path];
+			});
+			// delete undefined
+			model.set(model.pick(_.isUndefined), { unset: true });
+		});
+
 		Backbone.Model.apply(this, arguments);
 
 		var _model = this;
@@ -57,52 +47,14 @@ module.exports = Backbone.Model.extend({
 		});
 
 		_.extend(this, _.pick(opts, 'validation'));
-
-		if(!this.validation)
-			this.validate = false;
-		else
-			this._setupValidation();
-
-		return _model;
-	},
-
-	validate: function(attrs, options) {
-		options = options || {};
-
-		var _model = this;
-
-		var errors = {};
-
-		if(options.validateAll) {
-			_.each(_model.validation, function(validator, key) {
-				var error = _model.validation[key].call(_model, _model.get(key));
-
-				if(error) 
-					errors[key] = error;
-
-			});
-		} else {
-			_.each(dotNotation(attrs), function(value, key) {
-				if(_model.validation[key]) {
-					var error = _model.validation[key].call(_model, value);
-
-					if(error) 
-						errors[key] = error;
-				}
-			});
-		}
-
-		return _.keys(errors).length > 0 ? errors : undefined;
 	},
 
 	get: function(attr) {
-		attr = attr.split('.');
+		// unflatten changes in set() before triggering change events
+		if (_.some(this.flattened, this.hasChanged, this))
+			_.extend(this.attributes, this.changed = this.unflatten(this.changed));
 
-		for(var i = 0, ref = this.attributes; ref && i < attr.length; i++) {
-			ref = ref[attr[i]];
-		}
-
-		return ref;
+		return get(this.attributes, attr);
 	},
 
 	idAttribute: '_id',
@@ -111,119 +63,78 @@ module.exports = Backbone.Model.extend({
 		return !_.isEqual(this.attributes, this.originalAttributes);
 	},
 
-	isValid: function(options) {
-		return this._validate({}, _.defaults({ validateAll: true, validate: true }, options));
-	},
-
 	changedAttributes: function(diff, options) {
 		var attrs = Backbone.Model.prototype.changedAttributes.apply(this, arguments);
 
 		return options && options.dotNotation ? dotNotation(attrs) : attrs;
 	},
 
-	set: function(attr, value, options) {
-		if(_.isString(attr)) {
-			options = _.clone(options);
+	_validate: function(attrs, options) {
+		this.flatten(_.keys(attrs));
 
-			var attrs = {};
-			attrs[attr] = value;
-
-			var error;
-
-			if(options && options.validate && _.isFunction(this.validate))
-				error = this.validate(attrs);
-
-			if (error) {
-				_.extend(this.validationError, error);
-				value = undefined;
-			}
-
-			var namespace = attr.split('.');
-
-			if(namespace.length > 1) {
-				var obj = _.clone(this.get(namespace[0])) || {},
-					refs = [ obj ];
-
-				for(var i = 1, ref = obj; i < namespace.length - 1; i++) {
-
-					if(_.isObject(ref[namespace[i]])) ref[namespace[i]] = _.clone(ref[namespace[i]]);
-					else if(!ref[namespace[i]]) ref[namespace[i]] = {};
-
-					ref = ref[namespace[i]];
-
-					refs.push(ref);
-				}
-
-				refs.push(value);
-
-				ref[namespace[i]] = value;
-
-				if(value === undefined) {
-					for(i = refs.length - 1; i > 0; i--) {
-
-						if(_.isEmpty(refs[i]))
-							delete refs[i - 1][namespace[i]];
-					}
-				}
-
-				value = _.isEmpty(obj) ? undefined : obj;
-				attr = namespace[0];
-			}
-
-			if(value === undefined)
-				options.unset = true;
-
-			var result = Backbone.Model.prototype.set.call(this, attr, value, _.defaults({ validate: false }, options));
-
-			if(error) {
-				this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
-				return false;
-			}
-
-			return result;
-		}
-
-		return Backbone.Model.prototype.set.apply(this, arguments);
+		return !options.validate || !this.validate ||
+			_validate.call(this, this.unflatten(attrs), options);
 	},
 
+	// set dot-delimited paths directly on this.attributes
+	flatten: function(paths) {
+		var attributes = this.attributes;
 
-	reset: function() {
-		var _model = this;
-		var options = { validate: true };
-		var attrs = dotNotation(_model.attributes);
-		var originalAttrs = dotNotation(_model.originalAttributes);
+		this.flattened = _.filter(paths, function(path) {
+			var index = path.lastIndexOf('.');
+			if (index < 0) return false;
 
-		_.without(_.keys(attrs), _.keys(originalAttrs)).forEach(function(attr) {
-			_model.unset(attr, options);
+			var key = path.slice(0, index),
+				obj = key in attributes ? attributes[key] : get(attributes, key);
+
+			attributes[path] = obj == null ? void 0 : obj[key.slice(index + 1)];
+			return true;
 		});
 
-		_.each(originalAttrs, function(value, key) {
-			_model.set(key, value, options);
-		});
+		return this;
 	},
 
-	_setupValidation: function() {
-		var _model = this;
+	// return an unflattened copy of attrs
+	// merged over corresponding nested attributes in this.attributes
+	unflatten: function(attrs) {
+		var result = {},
+			attributes = this.attributes;
 
-		this.validation = _.mapObject(this.validation, function(validation, attr) {
-			var tests = [];
+		_.each(attrs, function(val, key) {
+			var path = key.split('.');
 
-			_.each(validation, function(options, testName) {
-				options = options || {};
+			key = path.pop();
 
-				if(_tests[testName]) {
-					var fnc = options.option ? _tests[testName](options.option) : _tests[testName],
-						message = _.isString(options) ? options : options.message || _messages[fnc._name];
+			var obj = _.reduce(path, makeNested, result);
 
-					tests[testName === 'required' ? 'unshift' : 'push']({
-						message: format.apply(null, [ message ].concat(fnc._parameters)),
-						fnc: fnc
-					});
-				}
+			if (val === void 0)
+				delete obj[key];
+			else
+				obj[key] = val;
+		});
+
+		function makeNested(obj, key, level) {
+			var attrs = level || _.has(obj, key) ? obj : attributes;
+
+			obj = obj[key] = {};
+
+			// copy nested attributes
+			_.some(attrs[key], function(val, key) {
+				// check that we are not iterating an array-like object
+				if (typeof key == 'number') return true;
+				obj[key] = val;
 			});
 
-			return validator(tests, _model);
-		});
-	}
+			return obj;
+		}
 
+		return result;
+	},
+
+	reset: function(options) {
+		var attrs = {};
+		for (var key in this.attributes) attrs[key] = void 0;
+
+		return this.set(_.extend(attrs, this.originalAttributes), options);
+	},
 });
