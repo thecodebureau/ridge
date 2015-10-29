@@ -32,7 +32,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 			return 'value';
 		})), function(value, key) {
 			return _.isObject(value) ? value : {
-				selector: '[name="' + key + '"]',
+				selector: '[name="' + key + '"],[data-name="' + key + '"]',
 				type: value
 			};
 		});
