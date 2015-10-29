@@ -69,11 +69,25 @@ module.exports = Backbone.Model.extend({
 		return options && options.dotNotation ? dotNotation(attrs) : attrs;
 	},
 
+	save: function(attrs, options) {
+		options = _.extend({ validateAll: true }, options);
+
+		return Backbone.Model.prototype.save.call(this, attrs, options);
+	},
+
 	_validate: function(attrs, options) {
 		this.flatten(_.keys(attrs));
 
-		return !options.validate || !this.validate ||
-			_validate.call(this, this.unflatten(attrs), options);
+		if (!options.validate || !this.validate) return true;
+
+		if (options.validateAll)
+			attrs = _.extend({}, this.attributes, attrs);
+
+		attrs = dotNotation(attrs);
+		var error = this.validationError = this.validate(attrs, options) || null;
+		if (!error) return true;
+		this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
+		return false;
 	},
 
 	// set dot-delimited paths directly on this.attributes
