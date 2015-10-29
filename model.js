@@ -1,7 +1,7 @@
 function dotNotation(obj) {
 	var out = {};
 	function recurse(value, tree) {
-		if(_.isObject(value) && !_.isArray(value) && !_.isFunction(value)) {
+		if(_.isObject(value) && !_.isDate(value) && !_.isArray(value) && !_.isFunction(value)) {
 			_.each(value, function(value, key) {
 				recurse(value, tree.concat(key));
 			});
@@ -17,20 +17,6 @@ function dotNotation(obj) {
 
 // returns a checker function which runs all
 // validator functions in the validators array
-function validator(tests) {
-	return function(value) {
-		if(tests[0].fnc._name !== 'required' && !_tests.required(value)) return;
-
-		for(var i = 0; i < tests.length; i++) {
-			var obj = tests[i];
-
-			if (!obj.fnc(value)) {
-				return obj.message;
-			}
-		}
-	};
-}
-
 // enable string formatting like in console log, ie console.log('I like to %s a lot', 'poop') > "I like to poop alot"
 function format(str) {
 	var args = _.rest(arguments);
@@ -39,6 +25,21 @@ function format(str) {
 		return args.shift() || match;
 	});
 }
+
+function validator(tests, thisArg) {
+	return function(value) {
+		if(tests[0].fnc._name !== 'required' && !_tests.required(value)) return;
+
+		for(var i = 0; i < tests.length; i++) {
+			var obj = tests[i];
+
+			if (!obj.fnc.call(thisArg, value)) {
+				return obj.message;
+			}
+		}
+	};
+}
+
 
 var _tests = require('./util/validate/tests'),
 	_messages = require('./util/validate/messages');
@@ -74,7 +75,7 @@ module.exports = Backbone.Model.extend({
 
 		if(options.validateAll) {
 			_.each(_model.validation, function(validator, key) {
-				var error = _model.validation[key](_model.get(key));
+				var error = _model.validation[key].call(_model, _model.get(key));
 
 				if(error) 
 					errors[key] = error;
@@ -83,7 +84,7 @@ module.exports = Backbone.Model.extend({
 		} else {
 			_.each(dotNotation(attrs), function(value, key) {
 				if(_model.validation[key]) {
-					var error = _model.validation[key](value);
+					var error = _model.validation[key].call(_model, value);
 
 					if(error) 
 						errors[key] = error;
@@ -122,12 +123,15 @@ module.exports = Backbone.Model.extend({
 
 	set: function(attr, value, options) {
 		if(_.isString(attr)) {
-			options = _.defaults({ validate: false }, options);
+			options = _.clone(options);
 
 			var attrs = {};
 			attrs[attr] = value;
 
-			var error = this.validate(attrs);
+			var error;
+
+			if(options && options.validate && _.isFunction(this.validate))
+				error = this.validate(attrs);
 
 			if (error) {
 				_.extend(this.validationError, error);
@@ -169,7 +173,7 @@ module.exports = Backbone.Model.extend({
 			if(value === undefined)
 				options.unset = true;
 
-			var result = Backbone.Model.prototype.set.call(this, attr, value, options);
+			var result = Backbone.Model.prototype.set.call(this, attr, value, _.defaults({ validate: false }, options));
 
 			if(error) {
 				this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
@@ -185,16 +189,22 @@ module.exports = Backbone.Model.extend({
 
 	reset: function() {
 		var _model = this;
+		var options = { validate: true };
+		var attrs = dotNotation(_model.attributes);
+		var originalAttrs = dotNotation(_model.originalAttributes);
 
-		_.each(_model.attributes, function(value, key) {
-			if(_.has(_model.originalAttributes, key) && _model.originalAttributes[key] !== undefined)
-				_model.set(key, _model.originalAttributes[key]);
-			else
-				_model.unset(key);
+		_.without(_.keys(attrs), _.keys(originalAttrs)).forEach(function(attr) {
+			_model.unset(attr, options);
+		});
+
+		_.each(originalAttrs, function(value, key) {
+			_model.set(key, value, options);
 		});
 	},
 
 	_setupValidation: function() {
+		var _model = this;
+
 		this.validation = _.mapObject(this.validation, function(validation, attr) {
 			var tests = [];
 
@@ -212,7 +222,7 @@ module.exports = Backbone.Model.extend({
 				}
 			});
 
-			return validator(tests);
+			return validator(tests, _model);
 		});
 	}
 
