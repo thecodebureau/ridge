@@ -129,14 +129,14 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 			this.elements.button.prop('disabled', true);
 
-			if(this.model.isValid()) {
-				return this.model.save(null, {
-					success: this.onSuccess,
-					error: this.onError,
-					complete: this.onComplete,
-					context: this
-				});
-			}
+			return this.model.save(null, {
+				success: this.onSuccess,
+				error: this.onError,
+				complete: this.onComplete,
+				context: this
+			});
+		} else {
+			this.$('[name].invalid,[data-name].invalid').first().focus();
 		}
 	},
 
@@ -144,7 +144,9 @@ _.extend(View.prototype, require('../mixins/observe'), {
 		var _view = this;
 
 		_.each(model.changedAttributes(null, { dotNotation: true }), function(value, attr) {
-			_view.$('[data-name="' + attr + '"],[name="' + attr + '"]').closest('form .container')
+			_view.$('[data-name="' + attr + '"],[name="' + attr + '"]')
+				.removeClass('invalid').addClass('valid')
+				.closest('form .container')
 				.removeClass('invalid').addClass('valid')
 				.find('label.error').remove();
 		});
@@ -154,7 +156,8 @@ _.extend(View.prototype, require('../mixins/observe'), {
 		var _view = this;
 
 		_.each(errors, function(error, property) {
-			var $container = _view.$('[data-name="' + property + '"],[name="' + property + '"]').closest('form .container'),
+			var $container = _view.$('[data-name="' + property + '"],[name="' + property + '"]')
+				.removeClass('valid').addClass('invalid').closest('form .container'),
 				$label = $container.find('label.error');
 
 			if($label.length === 0)
