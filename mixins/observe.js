@@ -43,7 +43,11 @@ module.exports = {
 					setter($el, ref != null ? ref : null);
 				}
 
-				function getHandler(e) {
+				function getHandler(e, data) {
+					data = data || e.data || {};
+
+					if(data.internalUpdate) return;
+
 					var value = getter($el) || undefined;
 
 					_view.model.set(namespace.join('.'), value, setOptions);
