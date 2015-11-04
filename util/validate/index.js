@@ -50,6 +50,8 @@ module.exports = function(attrs, options) {
 
 	var errors = {};
 
+	attrs = _model.flatten(attrs, _.keys(_model.validation));
+
 	_.each(attrs, function(val, key) {
 		if (_.has(_model.validation, key)) {
 			if (!_.isFunction(_model.validation[key]))

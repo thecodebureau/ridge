@@ -1,41 +1,7 @@
-function dotNotation(obj) {
-	var out = {};
-	function recurse(value, tree) {
-		if(_.isObject(value) && !_.isDate(value) && !_.isArray(value) && !_.isFunction(value)) {
-			_.each(value, function(value, key) {
-				recurse(value, tree.concat(key));
-			});
-		} else
-			out[tree.join('.')] = value;
-
-	}
-
-	recurse(obj, []);
-
-	return out;
-}
-
-function get(obj, path) {
-	path = path.split('.');
-
-	while (obj != null && path.length)
-		obj = obj[path.shift()];
-
-	return obj;
-}
-
-var _validate = Backbone.Model.prototype._validate;
+var set = Backbone.Model.prototype.set;
 
 module.exports = Backbone.Model.extend({
 	constructor: function(attrs, opts) {
-		this.on('change', function(model) {
-			_.each(model.flattened, function(path) {
-				delete model.attributes[path];
-			});
-			// delete undefined
-			model.set(model.pick(_.isUndefined), { unset: true });
-		});
-
 		Backbone.Model.apply(this, arguments);
 
 		var _model = this;
@@ -50,11 +16,16 @@ module.exports = Backbone.Model.extend({
 	},
 
 	get: function(attr) {
-		// unflatten changes in set() before triggering change events
-		if (_.some(this.flattened, this.hasChanged, this))
-			_.extend(this.attributes, this.changed = this.unflatten(this.changed));
+		var path = attr.split('.'),
+			val = this.attributes[path.shift()];
 
-		return get(this.attributes, attr);
+		while ((attr = path.shift()) != null) {
+			if (!_.has(val, attr)) return;
+
+			val = val[attr];
+		}
+
+		return val;
 	},
 
 	idAttribute: '_id',
@@ -63,69 +34,82 @@ module.exports = Backbone.Model.extend({
 		return !_.isEqual(this.attributes, this.originalAttributes);
 	},
 
-	changedAttributes: function(diff, options) {
-		var attrs = Backbone.Model.prototype.changedAttributes.apply(this, arguments);
-
-		return options && options.dotNotation ? dotNotation(attrs) : attrs;
-	},
-
 	save: function(attrs, options) {
 		options = _.extend({ validateAll: true }, options);
 
 		return Backbone.Model.prototype.save.call(this, attrs, options);
 	},
 
-	_validate: function(attrs, options) {
-		this.flatten(_.keys(attrs));
+	set: function(key, val, options) {
+		if (key == null) return this;
 
+		if (typeof key == 'object') {
+			attrs = key;
+			options = val;
+		} else {
+			(attrs = {})[key] = val;
+		}
+
+		return set.call(this, this.unflatten(attrs), options);
+	},
+
+	_validate: function(attrs, options) {
 		if (!options.validate || !this.validate) return true;
 
 		if (options.validateAll)
 			attrs = _.extend({}, this.attributes, attrs);
 
-		attrs = dotNotation(attrs);
 		var error = this.validationError = this.validate(attrs, options) || null;
 		if (!error) return true;
 		this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
 		return false;
 	},
 
-	// set dot-delimited paths directly on this.attributes
-	flatten: function(paths) {
-		var attributes = this.attributes;
+	// pick nested attributes
+	flatten: function(attrs, keys) {
+		attrs = this.unflatten(attrs);
 
-		this.flattened = _.filter(paths, function(path) {
-			var index = path.lastIndexOf('.');
-			if (index < 0) return false;
+		var result = {};
 
-			var key = path.slice(0, index),
-				obj = key in attributes ? attributes[key] : get(attributes, key);
+		_.each(keys, function(key) {
+			var path = key.split('.'),
+				val = attrs;
 
-			attributes[path] = obj == null ? void 0 : obj[key.slice(index + 1)];
-			return true;
+			while (path.length) {
+				var attr = path.shift();
+
+				if (!_.has(val, attr)) return;
+
+				val = val[attr];
+			}
+
+			result[key] = val;
 		});
 
-		return this;
+		return result;
 	},
 
 	// return an unflattened copy of attrs
-	// merged over corresponding nested attributes in this.attributes
+	// merging dot-delimited attributes with nested attributes in this.attributes
 	unflatten: function(attrs) {
 		var result = {},
 			attributes = this.attributes;
 
-		_.each(attrs, function(val, key) {
-			var path = key.split('.');
+		for (var attr in attrs) {
+			var val = attrs[attr],
+				path = attr.split('.');
 
-			key = path.pop();
+			if (path.length > 1) {
+				attr = path.pop();
 
-			var obj = _.reduce(path, makeNested, result);
+				var obj = _.reduce(path, makeNested, result);
 
-			if (val === void 0)
-				delete obj[key];
-			else
-				obj[key] = val;
-		});
+				if (obj[attr] !== val)
+					obj[attr] = val;
+			} else {
+				result[attr] = val;
+			}
+		}
 
 		function makeNested(obj, key, level) {
 			var attrs = level || _.has(obj, key) ? obj : attributes;
@@ -149,6 +133,8 @@ module.exports = Backbone.Model.extend({
 		var attrs = {};
 		for (var key in this.attributes) attrs[key] = void 0;
 
-		return this.set(_.extend(attrs, this.originalAttributes), options);
+		this.originalAttributes = _.extend(attrs, this.originalAttributes);
+
+		return this.set(attrs, options);
 	},
 });

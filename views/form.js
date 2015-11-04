@@ -143,7 +143,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 	setValid: function removeError(model, options) {
 		var _view = this;
 
-		_.each(model.changedAttributes(null, { dotNotation: true }), function(value, attr) {
+		_.each(model.flatten(model.changed, _.keys(model.validation)), function(value, attr) {
 			_view.$('[data-name="' + attr + '"],[name="' + attr + '"]').closest('form .container')
 				.removeClass('invalid').addClass('valid')
 				.find('label.error').remove();
