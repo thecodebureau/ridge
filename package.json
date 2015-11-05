@@ -27,8 +27,6 @@
   "dependencies": {
   },
   "peerDependencies": {
-    "dustjs-linkedin": "^2.7.2",
-    "jquery-jsonify": "^0.1.0",
-    "jquery-valet": "^0.2.0"
+    "dustjs-linkedin": "^2.7.2"
   }
 }

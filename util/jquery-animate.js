@@ -13,22 +13,36 @@ function transition($el) {
 }
 
 function enter() {
+	// The extra offsetHeight is required to fix IE bug. if there is button in the page,
+	// the page will be placed at it's end location, then aniamted out until the enter active class is added.
+	//
+	// this bug can apparently be sorted by setting the start position in .animate instead of .page
+	//$(this).addClass('enter');
+
+	// force redraw
+	//this.offsetHeight;
+
 	$(this).addClass('animate enter').removeClass('hidden');
 
 	// force redraw
 	this.offsetHeight;
 
-	transition($(this).addClass('active').removeClass('leave'));
+	setTimeout(function() {
+		transition($(this).addClass('active').removeClass('leave'));
+	}.bind(this));
 }
 
 function leave(options) {
 	options = options || {};
+
 	$(this).addClass('animate leave').addClass(options.className);
 
 	// force redraw
 	this.offsetHeight;
 
-	transition($(this).addClass('active').removeClass('enter'));
+	setTimeout(function() {
+		transition($(this).addClass('active').removeClass('enter'));
+	}.bind(this));
 }
 
 // remove element when transition ends
