@@ -1,6 +1,3 @@
-//require('../util/jquery-jsonify');
-//require('../util/validate');
-
 var app = require('../ridge');
 
 var View = require('../view').extend();
@@ -68,6 +65,14 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 	labelClick: function(e) {
 		$(e.currentTarget).siblings('input,textarea,[data-spytext]').focus();
+	},
+
+	reset: function() {
+		this.$('.invalid,.valid').removeClass('valid invalid');
+		this.$('label.error').remove();
+		// unobserve is called so that 'input' events are not fired until
+		// 'blur' or change' event has called.
+		this.observe();
 	},
 
 	onHover: function() {
