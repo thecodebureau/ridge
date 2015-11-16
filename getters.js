@@ -36,11 +36,11 @@ function value(el) {
 
 value.events = function(handler) {
 	return {
-		'blur change': function(e) {
-			handler(e);
+		'blur change': function(e, data) {
+			handler(e, data);
 
-			$(this).off('blur change').on('blur change', e.data, handler)
-				.on('input', e.data, handler);
+			$(this).off('blur change').on('blur change', handler)
+				.on('input', handler);
 		}
 	};
 };
