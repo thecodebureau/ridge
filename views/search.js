@@ -43,7 +43,6 @@ module.exports = require('ridge/view').extend({
 	attach: function() {
 		var params = app.router.params;
 
-		console.log(params);
 		_.each(this.$('form').prop('elements'), function(elem) {
 			if (elem.name)
 				$(elem).val(params[elem.name]);
