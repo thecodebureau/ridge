@@ -41,8 +41,12 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	start: function(options) {
+		Backbone.history.start(options);
+
+		// prevent scrolling on popState with { scrollRestoration: 'manual' }
+		_.extend(window.history, _.pick(options, 'scrollRestoration'));
+
 		$(function() {
-			Backbone.history.start(options);
 			Backbone.View.call(app);
 		});
 	},
@@ -51,9 +55,11 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		var main = app.$('main');
 		app.elements = { main: main };
 
-		app.createPage(_.extend({
+		var page = app.createPage(_.extend({
 			el: main.children()
 		}, main.data()));
+
+		page.ready(page.scroll);
 	},
 
 	createPage: function(options) {
@@ -64,12 +70,12 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			options.model = model;
 		}
 
-		return app.currentPage = new app.views.Page(options).ready(function() {
-			window.scrollTo(this.scrollX || 0, this.scrollY || 0);
-		});
+		return app.currentPage = new app.views.Page(options);
 	},
 
 	switchPage: function(options) {
+		window.scrollTo(0, 0);
+
 		app.currentPage.remove(options);
 
 		app.createPage(options).enter(app.elements.main, options);
