@@ -4,9 +4,9 @@ var _setters = require('ridge/setters');
 function _setter(/* fncs */) {
 	// NOTE element can be an array of elements (currently only for checkbox and radio)
 	var fncs = _.toArray(arguments);
-	return function(element, value) {
+	return function($element, value) {
 		fncs.forEach(function(fnc) {
-			fnc(element, value);
+			fnc($element, value);
 		});
 	};
 }
@@ -23,103 +23,117 @@ function _filter(/* filters */) {
 	};
 }
 
+function prepareBinding(binding, key) {
+		if(_.isString(binding))
+			binding = {
+				hook: key,
+				type: binding
+			};
+		else
+			binding = _.clone(binding);
+
+		if(binding.hook) binding.selector = '[data-hook="' + binding.hook + '"]';
+
+		if(binding.type) binding.get = binding.set = binding.type;
+
+		if(!_.isArray(binding.set)) binding.set = [ binding.set ];
+
+		binding.namespace = key.split('.');
+
+		if(binding.get)
+			binding.getter = _getters[binding.get];
+
+		if(binding.set)
+			binding.setter = _setter.apply(null, binding.set.map(function(name) {
+				return _setters[name];
+			}));
+
+		return binding;
+}
+
 module.exports = {
 	observe: function(opts) {
 		var _view = this;
 
+		this.unobserve();
+
 		this._bindings = [];
+		
+		_.each(this.bindings, function bind(binding, key) {
+			function setHandler(model, value, data) {
+				if(data && data.internalUpdate) return;
 
-		_.each(this.bindings, function(binding, key) {
-			function setupBinding(binding) {
-				function setHandler(model, value, binding) {
-					if(binding && binding.internalUpdate) return;
-					//if(setter.disabled) return;
-
-					// TODO should probably be able to loop through value
-					for(var i = 0, ref = model.changedAttributes(); ref && i < namespace.length; i++) {
-						ref = ref[namespace[i]];
-					}
-
-					setter($el, ref != null ? ref : null);
+				// TODO should probably be able to loop through value
+				for(var i = 0, ref = model.changedAttributes(); ref && i < binding.namespace.length; i++) {
+					ref = ref[binding.namespace[i]];
 				}
 
-				function getHandler(e, data) {
-					data = data || e.data || {};
+				binding.setter(binding.$el, ref != null ? ref : null);
+			}
 
-					if(data.internalUpdate) return;
+			function getHandler(e, data) {
+				data = data || e.data || {};
 
-					var value = getter($el) || undefined;
+				// binding.getter will be undefined if an old event, ie blur, fires
+				// after the view is re-rendered
+				if(data.internalUpdate || !binding.getter) return;
 
-					_view.model.set(namespace.join('.'), value, setOptions);
-				}
+				var value = binding.getter($el) || null;
 
-				if(_.isString(binding))
-					binding = {
-						hook: key,
-						type: binding
-					};
+				if(value === binding.previousValue)
+					return;
 
-				if(binding.hook) binding.selector = '[data-hook="' + binding.hook + '"]';
+				binding.previousValue = value;
 
-				if(binding.type) binding.get = binding.set = binding.type;
+				_view.model.set(binding.namespace.join('.'), value, setOptions);
+			}
 
-				if(!_.isArray(binding.set)) binding.set = [ binding.set ];
+			if(_.isArray(binding)) return binding.forEach(function(binding) { bind(binding, key); });
 
-				var $el = _view.$(binding.selector);
+			binding = prepareBinding(binding, key);
 
-				if($el.length === 0) return;
+			var setOptions = {
+				validate: _.isBoolean(binding.validate) ? binding.validate : !!(opts && opts.validate),
+				internalUpdate: true
+			};
 
-				var namespace = key.split('.'),
-					getter = _getters[binding.get],
-					setter = {};
+			var $el = _view.$(binding.selector);
 
-				// is object so we can set setter.disabled without having to check
+			if($el.length === 0) return;
 
-				if(binding.set) {
-					setter = _setter.apply(null, binding.set.map(function(name) {
-						return _setters[name];
-					}));
+			if(binding.setter) {
+				_view.listenTo(_view.model, 'change:' + binding.namespace[0], setHandler);
+			}
 
-					_view.listenTo(_view.model, 'change:' + namespace[0], setHandler);
-				}
+			if(binding.getter && binding.getter.events) {
+				binding.events = _.isFunction(binding.getter.events) ? binding.getter.events(getHandler) : _.object(binding.getter.events.map(function(eventName) {
+					return [ eventName, getHandler ];
+				}));
 
-				var setOptions = {
-					validate: _.isBoolean(binding.validate) ? binding.validate : !!(opts && opts.validate),
-					internalUpdate: true
-				};
-
-				if(getter && getter.events) {
-					var events = _.isFunction(getter.events) ? getter.events(getHandler) : _.object(getter.events.map(function(eventName) {
-						return [ eventName, getHandler ];
-					}));
-
-					_.each(events, function(handler, eventName) {
-						$el.on(eventName, handler);
-					});
-				}
-
-				_view._bindings.push({
-					$el: $el,
-					el: $el[0],
-					getter: getter,
-					setter: setter,
-					namespace: key.split('.'),
-					setHandler: setHandler
+				_.each(binding.events, function(handler, eventName) {
+					$el.on(eventName, handler);
 				});
 			}
 
-			if(_.isArray(binding)) binding.forEach(setupBinding);
-			else setupBinding(binding);
+			_view._bindings.push(_.extend(binding, {
+				$el: $el,
+				setHandler: setHandler
+			}));
+
 		});
 	},
 
-	unobserve: function() {
+	unobserve: function(clear) {
 		var view = this;
+
 		_.each(view._bindings, function(binding) {
-			view.stopListening(view.model, 'change:' + binding.namespace[0], binding.handler);
-			binding.$el.off();
+			view.stopListening(view.model, 'change:' + binding.namespace[0], binding.setHandler);
+
+			_.each(binding.events, function(handler, eventName) {
+				binding.$el.off(eventName, handler);
+			});
+
 			delete binding.$el;
-			delete binding.el;
 			delete binding.getter;
 			delete binding.setter;
 			delete binding.namespace;
@@ -142,7 +156,7 @@ module.exports = {
 
 			if(ref && binding.filter) ref = binding.filter(ref);
 
-			binding.setter(binding.el, ref);
+			binding.setter(binding.$el, ref);
 		});
 	},
 };
