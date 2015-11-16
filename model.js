@@ -53,14 +53,17 @@ module.exports = Backbone.Model.extend({
 		return set.call(this, this.unflatten(attrs), options);
 	},
 
+	isValid: function(options) {
+		return this._validate({}, _.defaults({ validateAll: true, validate: true}, options));
+	},
+
 	_validate: function(attrs, options) {
 		if (!options.validate || !this.validate) return true;
 
-		if (options.validateAll)
-			attrs = _.extend({}, this.attributes, attrs);
-
 		var error = this.validationError = this.validate(attrs, options) || null;
+
 		if (!error) return true;
+
 		this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
 		return false;
 	},

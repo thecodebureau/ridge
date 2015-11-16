@@ -50,18 +50,21 @@ module.exports = function(attrs, options) {
 
 	var errors = {};
 
-	attrs = _model.flatten(attrs, _.keys(_model.validation));
+	if(options && options.validateAll)
+		attrs = _.object(_.map(_.keys(_model.validation), function(key) {
+			return [ key, _model.get(key) ];
+		}));
+	else
+		attrs = _model.flatten(attrs, _.keys(_model.validation));
 
 	_.each(attrs, function(val, key) {
-		if (_.has(_model.validation, key)) {
-			if (!_.isFunction(_model.validation[key]))
-				_model.validation[key] = setupValidation(_model.validation[key], key, _model);
+		if (!_.isFunction(_model.validation[key]))
+			_model.validation[key] = setupValidation(_model.validation[key], key, _model);
 
-			var error = _model.validation[key].call(_model, attrs[key]);
+		var error = _model.validation[key].call(_model, attrs[key]);
 
-			if(error) 
-				errors[key] = error;
-		}
+		if(error) 
+			errors[key] = error;
 	});
 
 	if(!_.isEmpty(errors))
