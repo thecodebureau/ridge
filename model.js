@@ -94,12 +94,11 @@ module.exports = Backbone.Model.extend({
 		}
 
 		function makeNested(obj, key, level) {
-			var attrs = level || _.has(obj, key) ? obj : attributes;
+			var attrs = (level || _.has(obj, key) ? obj : attributes)[key];
 
 			obj = obj[key] = {};
 
-			// copy nested attributes
-			_.some(attrs[key], function(val, key) {
+			_.some(attrs, function(val, key) {
 				// check that we are not iterating an array-like object
 				if (typeof key == 'number') return true;
 				obj[key] = val;
