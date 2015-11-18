@@ -55,8 +55,14 @@ _.extend(View.prototype, require('../mixins/observe'), {
 			this.model.validate(null, { validateAll: true });
 
 		this.$('[data-spytext],[name]:not(:disabled)').each(function() {
-			if(!/checkbox|radio/.test(this.type) && this.value) 
+			if(!/checkbox|radio/.test(this.type) && this.value) {
 				delete this.delayInput;
+
+				// TODO see how this handles defaults (meaning defaults might be
+				// rendered with dust, and then this change event resets them
+				if(_view.model.isNew())
+					$(this).trigger('change');
+			}
 
 			// set non-empty classes
 			_view.onChange({ currentTarget: this });
