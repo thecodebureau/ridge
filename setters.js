@@ -2,7 +2,7 @@ module.exports = {
 	html: function($el, value, previousValue) {
 		$el.html(value);
 
-		$el.trigger('change', { internalUpdate: true });
+		$el.trigger('change', { internal: true });
 	},
 
 	value: function($el, value, previousValue) {
@@ -23,7 +23,7 @@ module.exports = {
 			$el.val(value);
 		}
 
-		$el.trigger('change', { internalUpdate: true });
+		$el.trigger('change', { internal: true });
 	},
 
 	published: function($el, value) {

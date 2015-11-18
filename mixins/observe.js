@@ -61,7 +61,7 @@ module.exports = {
 		
 		_.each(this.bindings, function bind(binding, key) {
 			function setHandler(model, value, data) {
-				if(data && data.internalUpdate) return;
+				if(data && data.internal) return;
 
 				// TODO should probably be able to loop through value
 				for(var i = 0, ref = model.changedAttributes(); ref && i < binding.namespace.length; i++) {
@@ -77,7 +77,7 @@ module.exports = {
 				// binding.getter will be undefined if an old event, ie blur, fires
 				// after the view is re-rendered
 				// TODO manage delayInput on all elements if $el.length > 1
-				if(data.internalUpdate || !binding.getter || e.type === 'input' && $el[0].delayInput) return;
+				if(data.internal || !binding.getter || e.type === 'input' && $el[0].delayInput) return;
 
 				delete $el[0].delayInput;
 
@@ -91,7 +91,7 @@ module.exports = {
 				binding.previousValue = value;
 
 				_view.model.set(binding.namespace.join('.'), value, _.defaults({
-					internalUpdate: true
+					internal: true
 				}, opts));
 			}
 
