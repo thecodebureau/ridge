@@ -14,7 +14,8 @@ function format(str) {
 
 function validator(tests, thisArg) {
 	return function(value) {
-		if(tests[0].fnc._name !== 'required' && !_tests.required(value)) return;
+		// do not run tests if field is not required and not set
+		if(tests.length > 0 && tests[0].fnc._name !== 'required' && !_tests.required(value)) return;
 
 		for(var i = 0; i < tests.length; i++) {
 			var obj = tests[i];
@@ -29,6 +30,8 @@ function setupValidation(validation, attr, model) {
 	var tests = [];
 
 	_.each(validation, function(options, testName) {
+		if(!options) return;
+
 		options = options || {};
 
 		if(_tests[testName]) {
@@ -47,36 +50,33 @@ function setupValidation(validation, attr, model) {
 
 module.exports = {
 	save: function(attrs, options) {
-		options = _.extend({ validateAll: true }, options);
-
-		return Backbone.Model.prototype.save.call(this, attrs, options);
+		if(options && options.validate === false || this.isValid())
+			return Backbone.Model.prototype.save.call(this, attrs, _.defaults({ validate: false }, options));
 	},
 
 	isValid: function(options) {
-		return this._validate({}, _.defaults({ validateAll: true, validate: true}, options));
+		return this.validate({}, _.defaults({ validateAll: true }, options));
 	},
 
 	_validate: function(attrs, options) {
-		if (!options.validate || !this.validate) return true;
-
-		var error = this.validationError = this.validate(attrs, options) || null;
-
-		if (!error) return true;
-
-		this.trigger('invalid', this, error, _.extend(options, {validationError: error}));
-		return false;
+		// Do not value internal set in save: (if (serverAttrs && !model.set(serverAttrs, options)) return false;)
+		if (options.validate && !options.xhr)
+			this.validate(attrs, options);
+			
+		// always return true so that the value gets set on the model no matter what.
+		return true;
 	},
 
 	validate: function(attrs, options) {
-		var _model = this;
+		var _model = this,
+			errors = {},
+			valid = [];
 
-		var errors = {};
-
-		if(options && options.validateAll)
+		if(options && options.validateAll) {
 			attrs = _.object(_.map(_.keys(_model.validation), function(key) {
 				return [ key, _model.get(key) ];
 			}));
-		else
+		} else
 			attrs = _model.flatten(attrs, _.keys(_model.validation));
 
 		_.each(attrs, function(val, key) {
@@ -87,10 +87,13 @@ module.exports = {
 
 			if(error) 
 				errors[key] = error;
+			else
+				valid.push(key);
 		});
 
-		if(!_.isEmpty(errors))
-			return errors;
+		this.trigger('validated', this, errors, valid, options);
+
+		return _.isEmpty(errors);
 	}
 };
 
