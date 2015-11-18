@@ -38,7 +38,7 @@ function required(value) {
 	if(/^</.test(value))
 		return value.split(/<.*?>/).join('').trim();
 	else 
-		return !!value || value === 0;
+		return !!value || _.isBoolean(value) || value === 0;
 }
 
 required._name = 'required';
