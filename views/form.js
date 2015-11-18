@@ -36,10 +36,10 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 		this.delegate('submit', this.submit.bind(this));
 
-		this.listenTo(this.model, 'invalid', this.placeErrors);
-		this.listenTo(this.model, 'change', this.setValid);
+		this.listenTo(this.model, 'validated', this.setValid);
+		this.listenTo(this.model, 'reset', this.reset);
 
-		if(!this.model.isNew() && _.keys(this.model.attributes) === 1)
+		if(!this.model.isNew() && _.size(this.model.attributes) === 1)
 			this.model.fetch();
 	},
 
@@ -48,14 +48,17 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 		var _view = this;
 
-		this.observe({ validate: true });
+		this.observe({ delayInput: true, validate: true });
+
+		// do not validate new or not fetched models
+		if(!this.model.isNew() && _.size(this.model.attributes) > 1)
+			this.model.validate(null, { validateAll: true });
 
 		this.$('[data-spytext],[name]:not(:disabled)').each(function() {
-			// change is triggered mainly so that getter events are changed from
-			// only 'change' to 'input change', see the 'value' getter
-			if(this.checked || !this.checked && this.value && this.value !== 'undefined')
-				$(this).trigger('change');
+			if(!/checkbox|radio/.test(this.type) && this.value) 
+				delete this.delayInput;
 
+			// set non-empty classes
 			_view.onChange({ currentTarget: this });
 		});
 
@@ -70,9 +73,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 	reset: function() {
 		this.$('.invalid,.valid').removeClass('valid invalid');
 		this.$('label.error').remove();
-		// unobserve is called so that 'input' events are not fired until
-		// 'blur' or change' event has called.
-		this.observe();
+		this.attach();
 	},
 
 	onHover: function() {
@@ -86,8 +87,6 @@ _.extend(View.prototype, require('../mixins/observe'), {
 	onChange: function(e) {
 		var target = e.currentTarget,
 			value = target.nodeName === 'DIV' ? target.textContent.trim() : target.value;
-
-		if(value === 'undefined') value = undefined;
 
 		$(target).closest('form div.container').toggleClass('not-empty', !!value);
 	},
@@ -127,8 +126,6 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 		e.preventDefault();
 		
-		this.$('input,textarea,select').trigger('change');
-
 		if(this.model.isValid()) {
 			$(document.body).addClass('progress');
 
@@ -140,28 +137,18 @@ _.extend(View.prototype, require('../mixins/observe'), {
 				complete: this.onComplete,
 				context: this
 			});
-		} else {
-			this.$('[name].invalid,[data-name].invalid').first().focus();
 		}
 	},
 
-	setValid: function removeError(model, options) {
-		var _view = this;
-
-		_.each(model.flatten(model.changed, _.keys(_view.bindings)), function(value, attr) {
-			_view.$('[data-name="' + attr + '"],[name="' + attr + '"]')
-				.removeClass('invalid').addClass('valid')
-				.closest('form .container')
-				.removeClass('invalid').addClass('valid')
-				.find('label.error').remove();
-		});
-	},
-
-	placeErrors: function placeErrors(model, errors, options) {
+	setValid: function (model, errors, valid, options) {
 		var _view = this;
 
 		_.each(errors, function(error, property) {
-			var $container = _view.$('[data-name="' + property + '"],[name="' + property + '"]')
+			var $el = _view.$('[data-name="' + property + '"],[name="' + property + '"]');
+
+			delete $el[0].delayInput;
+
+			var $container = $el
 				.removeClass('valid').addClass('invalid').closest('form .container'),
 				$label = $container.find('label.error');
 
@@ -171,6 +158,20 @@ _.extend(View.prototype, require('../mixins/observe'), {
 				$label.text(error);
 
 			$container.removeClass('valid').addClass('invalid');
+		});
+
+		if(!_.isEmpty(errors) && options && options.validateAll) 
+			_view.$('[name].invalid,[data-name].invalid').first().focus();
+
+		_.each(valid, function(attr) {
+			var $el = _view.$('[data-name="' + attr + '"],[name="' + attr + '"]');
+
+			delete $el[0].delayInput;
+
+			$el.removeClass('invalid').addClass('valid')
+				.closest('form .container')
+				.removeClass('invalid').addClass('valid')
+				.find('label.error').remove();
 		});
 	},
 });
