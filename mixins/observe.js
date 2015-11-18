@@ -76,42 +76,43 @@ module.exports = {
 
 				// binding.getter will be undefined if an old event, ie blur, fires
 				// after the view is re-rendered
-				if(data.internalUpdate || !binding.getter) return;
+				// TODO manage delayInput on all elements if $el.length > 1
+				if(data.internalUpdate || !binding.getter || e.type === 'input' && $el[0].delayInput) return;
 
-				var value = binding.getter($el) || null;
+				delete $el[0].delayInput;
+
+				var value = binding.getter($el);
+
+				if(!value && !_.isBoolean(value) && value !== 0) value = null;
 
 				if(value === binding.previousValue)
 					return;
 
 				binding.previousValue = value;
 
-				_view.model.set(binding.namespace.join('.'), value, setOptions);
+				_view.model.set(binding.namespace.join('.'), value, _.defaults({
+					internalUpdate: true
+				}, opts));
 			}
 
 			if(_.isArray(binding)) return binding.forEach(function(binding) { bind(binding, key); });
 
 			binding = prepareBinding(binding, key);
 
-			var setOptions = {
-				validate: _.isBoolean(binding.validate) ? binding.validate : !!(opts && opts.validate),
-				internalUpdate: true
-			};
-
 			var $el = _view.$(binding.selector);
 
 			if($el.length === 0) return;
+
+			if(opts && opts.delayInput)
+				$el[0].delayInput = true;
 
 			if(binding.setter) {
 				_view.listenTo(_view.model, 'change:' + binding.namespace[0], setHandler);
 			}
 
 			if(binding.getter && binding.getter.events) {
-				binding.events = _.isFunction(binding.getter.events) ? binding.getter.events(getHandler) : _.object(binding.getter.events.map(function(eventName) {
-					return [ eventName, getHandler ];
-				}));
-
-				_.each(binding.events, function(handler, eventName) {
-					$el.on(eventName, handler);
+				_.each(binding.getter.events, function(eventName) {
+					$el.on(eventName, getHandler);
 				});
 			}
 
