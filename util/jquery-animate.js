@@ -2,17 +2,32 @@
 
 var transitionend = 'transitionend oTransitionEnd webkitTransitionEnd';
 
-$(document).on(transitionend, '.animate', function() {
+$(document).on(transitionend, '.animate.active', function() {
 	$(this).dequeue();
 });
 
-function transition($el) {
-	// check if transition duration > 0, otherwise finish animation
-	parseFloat($el.css('transition-duration')) || $el.dequeue();
-	// TODO set timeout or similar to prevent broken transitions from dequeuing
+function transition(className, options, complete) {
+	options = options || {};
+
+	if (options.className)
+		className += ' ' + options.className;
+
+	var stop;
+
+	return {
+		start: function(next, hooks) {
+			hooks.stop = stop = animate.call(this, className, options);
+		},
+
+		finish: function() {
+			if (complete) complete.call(this);
+			stop();
+			$(this).removeClass('animate active').dequeue();
+		}
+	};
 }
 
-function enter() {
+function animate(className, options) {
 	// The extra offsetHeight is required to fix IE bug. if there is button in the page,
 	// the page will be placed at it's end location, then aniamted out until the enter active class is added.
 	//
@@ -22,49 +37,29 @@ function enter() {
 	// force redraw
 	//this.offsetHeight;
 
-	$(this).addClass('animate enter').removeClass('hidden');
+	var elem = $(this).addClass('animate ' + className);
+
+	if (options.animateHeight)
+		elem.css('height', this.scrollHeight);
 
 	// force redraw
 	this.offsetHeight;
 
-	setTimeout(function() {
-		transition($(this).addClass('active').removeClass('leave'));
-	}.bind(this));
-}
+	var timeout = setTimeout(function() {
+		elem.addClass('active');
 
-function leave(options) {
-	options = options || {};
+		var duration = parseFloat(elem.css('transition-duration'));
 
-	$(this).addClass('animate leave').addClass(options.className);
+		timeout = setTimeout(function() {
+			// finish animation if we are still waiting for transitionend
+			if (elem.is('.animate.active')) elem.dequeue();
+		}, duration > 0 ? duration * 1000 : 0);
+	});
 
-	// force redraw
-	this.offsetHeight;
-
-	setTimeout(function() {
-		transition($(this).addClass('active').removeClass('enter'));
-	}.bind(this));
-}
-
-// remove element when transition ends
-function remove(next) {
-	$(this).removeClass('animate leave active').remove();
-	next();
-}
-
-function hide(options) {
-	options = options || {};
-
-	return function(next) {
-		$(this).addClass('hidden').removeClass('visible').removeClass(options.className);
-
-		next();
-	}
-}
-
-function setHeight(next) {
-	$(this).css('height', this.scrollHeight);
-
-	if(next) next();
+	return function() {
+		clearTimeout(timeout);
+		elem.removeClass(className).css({ height: '' });
+	};
 }
 
 $.fn.extend({
@@ -79,43 +74,37 @@ $.fn.extend({
 	enter: function(element, options) {
 		options = options || {};
 
-		this.queue(function(next) {
-			$(this).addClass(options.className);
+		var enter = transition('enter', options);
 
+		return this.queue(function() {
 			$(element)[options.method || 'append'](this);
 
-			next();
-		});
+			$(this).removeClass('hidden');
 
-		if (options.animateHeight)
-			this.queue(setHeight);
-
-		return this.queue(enter).queue(function(next) {
-			$(this).removeClass('animate enter active')
-				.removeClass(options.className).css({ height: '' });
-
-			next();
-		});
+			enter.start.apply(this, arguments);
+		}).queue(enter.finish);
 	},
 
-	leave: function(options) {
-		return this.stop().queue([ leave.bind(this, options), remove ]);
+	leave: function(options, complete) {
+		var leave = transition('leave', options, complete || function() {
+			// remove element when transition ends
+			$(this).remove();
+		});
+
+		this.finish().queue([ leave.start, leave.finish ]);
 	},
 
 	show: function(options) {
-		$(this).removeClass('hidden').addClass('visible');
+		this.queue(function() {
+			$(this).addClass('visible');
+		});
 
 		return this.enter(null, options);
 	},
 
 	hide: function(options) {
-		if(options && options.animateHeight) {
-			setHeight.call(this[0]);
-
-			// needed for some reason
-			this.css('overflow');
-		}
-
-		return this.stop().queue([ leave.bind(this, options), hide(options) ]);
+		return this.leave(options, function() {
+			$(this).addClass('hidden').removeClass('visible');
+		});
 	}
 });
