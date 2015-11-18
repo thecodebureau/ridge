@@ -112,10 +112,16 @@ module.exports = Backbone.Model.extend({
 
 	reset: function(options) {
 		var attrs = {};
+
 		for (var key in this.attributes) attrs[key] = void 0;
 
 		this.originalAttributes = _.extend(attrs, this.originalAttributes);
 
-		return this.set(attrs, options);
+		var result = this.set(attrs, options);
+
+		if(result)
+			this.trigger('reset');
+
+		return result;
 	},
 });
