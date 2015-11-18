@@ -33,17 +33,8 @@ function value(el) {
 		}
 	}
 }
-
-value.events = function(handler) {
-	return {
-		'blur change': function(e, data) {
-			handler(e, data);
-
-			$(this).off('blur change').on('blur change', handler)
-				.on('input', handler);
-		}
-	};
-};
+	
+value.events = [ 'blur', 'change', 'input' ];
 
 function parts(el) {
 	var _parts = $(el).find('[data-part]').toArray();
