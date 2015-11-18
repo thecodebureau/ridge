@@ -1,6 +1,6 @@
 /* Animate views */
 
-var transitionend = 'transitionend oTransitionEnd webkitTransitionEnd';
+var transitionend = 'transitionend';
 
 $(document).on(transitionend, '.animate.active', function() {
 	$(this).dequeue();
@@ -22,7 +22,7 @@ function transition(className, options, complete) {
 		finish: function() {
 			if (complete) complete.call(this);
 			stop();
-			$(this).removeClass('animate active').dequeue();
+			$(this).removeClass('animate active').css({ height: 'auto' }).dequeue();
 		}
 	};
 }
@@ -36,11 +36,7 @@ function animate(className, options) {
 
 	// force redraw
 	//this.offsetHeight;
-
 	var elem = $(this).addClass('animate ' + className);
-
-	if (options.animateHeight)
-		elem.css('height', this.scrollHeight);
 
 	// force redraw
 	this.offsetHeight;
@@ -52,13 +48,14 @@ function animate(className, options) {
 
 		timeout = setTimeout(function() {
 			// finish animation if we are still waiting for transitionend
+
 			if (elem.is('.animate.active')) elem.dequeue();
-		}, duration > 0 ? duration * 1000 : 0);
+		}, duration > 0 ? duration * 1100 : 0);
 	});
 
 	return function() {
 		clearTimeout(timeout);
-		elem.removeClass(className).css({ height: '' });
+		elem.removeClass(className);
 	};
 }
 
@@ -81,28 +78,52 @@ $.fn.extend({
 
 			$(this).removeClass('hidden');
 
+			if (options.animateHeight)
+				$(this).css('height', this.scrollHeight);
+
 			enter.start.apply(this, arguments);
 		}).queue(enter.finish);
 	},
 
 	leave: function(options, complete) {
+
 		var leave = transition('leave', options, complete || function() {
 			// remove element when transition ends
 			$(this).remove();
 		});
 
-		this.finish().queue([ leave.start, leave.finish ]);
+		this.finish();
+
+		if (options && options.animateHeight && !this.hasClass('animate')) {
+			this.queue(function(next, hooks) {
+				$(this).css('height', this.scrollHeight);
+
+				this.offsetHeight;
+
+				var timeout = setTimeout(next);
+
+				hooks.stop = function() {
+					clearTimeout(timeout);
+				};
+			});
+		}
+		
+		return this.queue(leave.start).queue(leave.finish);
 	},
 
 	show: function(options) {
-		this.queue(function() {
-			$(this).addClass('visible');
-		});
+		this.finish()
+			.queue(function(next) {
+				$(this).addClass('visible');
+
+				next();
+			});
 
 		return this.enter(null, options);
 	},
 
 	hide: function(options) {
+
 		return this.leave(options, function() {
 			$(this).addClass('hidden').removeClass('visible');
 		});
