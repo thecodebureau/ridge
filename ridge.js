@@ -76,7 +76,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	switchPage: function(options) {
 		window.scrollTo(0, 0);
 
-		app.currentPage.remove(options);
+		app.currentPage.leave(options);
 
 		app.createPage(options).enter(app.elements.main, options);
 
