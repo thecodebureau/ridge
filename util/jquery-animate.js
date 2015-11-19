@@ -22,7 +22,7 @@ function transition(className, options, complete) {
 		finish: function() {
 			if (complete) complete.call(this);
 			stop();
-			$(this).removeClass('animate active').css({ height: 'auto' }).dequeue();
+			$(this).removeClass('animate active').css({ height: '' }).dequeue();
 		}
 	};
 }
