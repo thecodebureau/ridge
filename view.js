@@ -192,7 +192,7 @@ var View = Backbone.View.extend({
 	},
 
 	// animated remove
-	remove: function(options) {
+	leave: function(options) {
 		this.stopListening();
 
 		var subViews = this.views;
