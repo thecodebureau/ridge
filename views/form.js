@@ -141,7 +141,8 @@ _.extend(View.prototype, require('../mixins/observe'), {
 				success: this.onSuccess,
 				error: this.onError,
 				complete: this.onComplete,
-				context: this
+				context: this,
+				validate: false
 			});
 		}
 	},
