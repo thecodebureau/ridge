@@ -8,20 +8,20 @@ module.exports = Backbone.Collection.extend({
 
 		if(_.isString(_collection.model)) {
 			_collection.modelName = _collection.model;
+
 			if(app.models[_collection.model])
 				_collection.model = app.models[_collection.model];
-			else {
+			else 
 				_collection.model = require('ridge/model').extend({
 					name: _collection.model
 				});
-			}
 		}
 
 		return _collection;
 	},
 
 	parse: function(resp) {
-		if(_.isNumber(resp.totalCount)) {
+		if(_.isObject(resp)) {
 			this.totalCount = resp.totalCount;
 
 			return _.find(resp, _.isArray);
@@ -29,5 +29,4 @@ module.exports = Backbone.Collection.extend({
 
 		return resp;
 	}
-
 });
