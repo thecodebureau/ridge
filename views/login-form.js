@@ -1,95 +1,82 @@
-var app = require('../ridge');
+var app = require('ridge');
 
-module.exports = require('../view').extend({
+module.exports = require('ridge/view').extend({
 	events: {
-		'submit form': 'login',
-		'click button.social': 'socialLogin',
-		'click a': 'remove'
+		'click a.external': 'externalLogin'
 	},
 
-	initialize: function(options) {
-		if(options.el && options.el.firstChild)
-			this.attach();
+	initialize: function(opts) {
+		if(opts && opts.removeOnLogin)
+			this.listenTo(app, 'login', this.remove);
+
+		this.model = new app.models.LoginUser();
 	},
 
 	attach: function() {
-		var $form = this.$('form');
+		var _view = this;
 
-		var $validator = $form.validate({
-			messages: {
-				email: {
-					required: 'Ange din epostadress',
-					email: 'Inte en giltig epostadress',
-				},
-				'password': {
-					required: 'Ange ett lösenord'
-				}
+		if(this.formView) this.formView.remove();
+
+		this.formView = new app.views.Form({
+			el: this.$('form'),
+
+			model: this.model,
+
+			onError: function(model, xhr, options) {
+				var _form = this,
+					err = xhr.responseJSON;
+
+				if(_form.message)
+					_form.message.leave({ animateHeight: true });
+
+				_form.message = new app.views.Message({
+					message: { 
+						type: 'error',
+						heading: err.statusText,
+						body: err.message
+					}
+				}).enter(_form.el, { method: 'prepend', animateHeight: true });
+			},
+
+			onSuccess: function(model, resp, options) {
+				model.destroy();
+
+				delete _view.model;
+
+				app.login(resp, options.xhr.getResponseHeader('location'));
 			},
 		});
-
-		if($.fn.placeholder)
-			this.$('input').placeholder();
 	},
 
 	template: 'partials/login-form',
 
-	onError: function(err) {
-		var that = this;
-		if(this.message) {
-			this.message.remove();
-		}
-
-		this.message = new app.views.Message({
-			//animateHeight: true,
-			data: { 
-				type: 'error',
-				heading: err.status === 401 ? 'Inloggninsfel' : 'Oops',
-				body: err.message
-			}
-		});
-
-		this.message.render(function() {
-			this.enter(that.el, 'prepend');
-		});
-	},
-
-	login: function(e) {
+	externalLogin: function(e) {
 		e.preventDefault();
 
-		var view = this;
+		var _view = this,
+			newWindow = window.open($(e.currentTarget).attr('href') + '?loginWindow=true', 'name', 'height=600,width=450');
 
-		$.ajax({
-			method: 'POST',
-			url: '/auth/local',
-			data: $(e.currentTarget).JSONify(),
-			dataType: 'json',
-			success: function(user, statusText, xhr) {
-				app.login(user);
+		if (window.focus) {
+			newWindow.focus();
+		}
 
-				var redirect = xhr.getResponseHeader('Location');
+		this.listenToOnce(window.broadcast, 'authenticate', function(err, user, newUser, redirect) {
+			if(err) {
+				if(_view.message) 
+					_view.message.leave({ animateHeight: true });
 
-				if(redirect) {
-					if(/^\/admin/.test(redirect))
-						return (window.location = redirect);
-
-				} else 
-					redirect = '/';
-				
-				app.router.navigate(redirect, true);
-			},
-			error: function(xhr, statusText, error) {
-				view.onError(xhr.responseJSON);
+				_view.message = new app.views.Message({
+					animateHeight: true,
+					message: { 
+						type: 'error',
+						heading: err.statusText,
+						body: err.message
+					}
+				}).enter(e.currentTarget, 'before', true);
+					
+			} else {
+				app.login(user, redirect);
 			}
-		});
-	},
-
-	socialLogin: function(e) {
-		var _view = this;
-		window.open($(e.target).data('href'), "_blank");
-		this.listenToOnce(window.broadcast, 'authenticate', function(err, user) {
-			if(err) return _view.onError(err);
-
-			app.login(user);
 		});
 	}
 });
