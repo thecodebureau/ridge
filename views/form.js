@@ -10,9 +10,9 @@ _.extend(View.prototype, require('../mixins/observe'), {
 	},
 
 	events: {
-		'focus input,textarea,[data-spytext]': 'onFocus',
-		'blur input,textarea,[data-spytext]': 'onBlur',
-		'input input,textarea,[data-spytext]': 'onChange',
+		'focus select,input,textarea,[data-spytext]': 'onFocus',
+		'blur select,input,textarea,[data-spytext]': 'onBlur',
+		'input select,input,textarea,[data-spytext]': 'onChange',
 		'change select,input,textarea,[data-spytext]': 'onChange',
 		'click label': 'labelClick',
 		'mouseover .invalid>label.icon': 'onHover',
