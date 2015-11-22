@@ -55,10 +55,38 @@ function equalTo(property) {
 	return fnc;
 }
 
+function date(value) {
+	return _.isDate(value) && !!value.getTime();
+}
+
+date._name = "date";
+
+function dateString(value) {
+	return /^(19|20)\d\d-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/.test(value);
+}
+
+dateString._name = "dateString";
+
+function timeString(value) {
+	return /^([01][0-9]|2[0-3]):[0-5][0-9]/.test(value);
+}
+
+timeString._name = "timeString";
+
+function number(value) {
+	return /^\d+$/.test(value);
+}
+
+number._name = 'number';
+
 module.exports = {
+	date: date,
+	dateString: dateString,
 	email: email,
+	equalTo: equalTo,
 	maxlength: maxlength,
 	minlength: minlength,
-	equalTo: equalTo,
-	required: required
+	number: number,
+	required: required,
+	timeString: timeString
 };
