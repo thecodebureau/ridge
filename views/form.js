@@ -22,25 +22,27 @@ _.extend(View.prototype, require('../mixins/observe'), {
 	initialize: function(opts) {
 		_.extend(this, _.pick(opts, 'onError', 'onSuccess', 'onComplete', 'submit'));
 
-		// use properties from model validation to set up more bindings.
-		// all model validation properties are assumed to be 'value' getter
-		// and all selectors in form view default to [name=""] instead of [data-hook=""]
-		this.bindings = _.mapObject(_.defaults(this.bindings || {}, _.mapObject(this.model.validation, function(value, key) {
-			return 'value';
-		})), function(value, key) {
-			return _.isObject(value) ? value : {
-				selector: '[name="' + key + '"],[data-name="' + key + '"]',
-				type: value
-			};
-		});
-
 		this.delegate('submit', this.submit.bind(this));
 
-		this.listenTo(this.model, 'validated', this.setValid);
-		this.listenTo(this.model, 'reset', this.reset);
+		if(this.model) {
+			// use properties from model validation to set up more bindings.
+			// all model validation properties are assumed to be 'value' getter
+			// and all selectors in form view default to [name=""] instead of [data-hook=""]
+			this.bindings = _.mapObject(_.defaults(this.bindings || {}, _.mapObject(this.model.validation, function(value, key) {
+				return 'value';
+			})), function(value, key) {
+				return _.isObject(value) ? value : {
+					selector: '[name="' + key + '"],[data-name="' + key + '"]',
+					type: value
+				};
+			});
 
-		if(!this.model.isNew() && _.size(this.model.attributes) === 1)
-			this.model.fetch();
+			this.listenTo(this.model, 'validated', this.setValid);
+			this.listenTo(this.model, 'reset', this.reset);
+
+			if(!this.model.isNew() && _.size(this.model.attributes) === 1)
+				this.model.fetch();
+		}
 	},
 
 	attach: function() {
@@ -51,7 +53,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 		this.observe({ delayInput: true, validate: true });
 
 		// do not validate new or not fetched models
-		if(!this.model.isNew() && _.size(this.model.attributes) > 1)
+		if(this.model && !this.model.isNew() && _.size(this.model.attributes) > 1)
 			this.model.validate(null, { validateAll: true });
 
 		this.$('[data-spytext],[name]:not(:disabled)').each(function() {
@@ -60,7 +62,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 
 				// TODO see how this handles defaults (meaning defaults might be
 				// rendered with dust, and then this change event resets them
-				if(_view.model.isNew())
+				if(_view.model && _view.model.isNew())
 					$(this).trigger('change');
 			}
 
