@@ -119,7 +119,7 @@ module.exports = Backbone.Model.extend({
 
 		var result = this.set(attrs, options);
 
-		if(result)
+		if(result && (!options || !options.silent))
 			this.trigger('reset');
 
 		return result;
