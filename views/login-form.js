@@ -39,9 +39,7 @@ module.exports = require('ridge/view').extend({
 			},
 
 			onSuccess: function(model, resp, options) {
-				model.destroy();
-
-				delete _view.model;
+				model.reset({ silent: true });
 
 				app.login(resp, options.xhr.getResponseHeader('location'));
 			},
