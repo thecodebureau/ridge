@@ -7,40 +7,44 @@ module.exports = {
 	},
 
 	toggleLoginForm: function(e) {
-		var app = this;
 		if(e) e.preventDefault();
 
-		if(app.loginForm) {
-			app.loginForm.remove();
-			delete app.loginForm;
+		if(this.loginForm) {
+			this.loginForm.remove();
+			delete this.loginForm;
 		} else {
-			app.loginForm = new app.views.LoginForm({ removeOnLogin: true }).enter(document.body);
+			this.loginForm = new this.views.LoginForm({ removeOnLogin: true }).enter(document.body);
 		}
 	},
 
-	login: function(user, redirect) {
+	login: function(user, loadUrl) {
 		this.user = new this.models.User(user);
 
 		if(this.loginForm && this.toggleLoginForm) {
 			this.toggleLoginForm();
 		}
 
-		if(redirect) {
-			if(/^\/admin/.test(redirect))
-				window.location.replace(redirect);
+		if(loadUrl) {
+			if(/^\/admin/.test(loadUrl))
+				window.location.replace(loadUrl);
 			else
-				Backbone.history.navigate(redirect, { trigger: true });
+				Backbone.history.navigate(loadUrl, { trigger: true });
 		} else {
 			// Backbone.history.loadUrl is called by Backbone.history.navigate when trigger: true
-			Backbone.history.loadUrl(Backbone.history.fragment);
+			loadUrl = Backbone.history.fragment;
+
+			if(loadUrl === 'login')
+				Backbone.history.navigate('', { trigger: true });
+			else
+				Backbone.history.loadUrl(loadUrl);
 		}
 
 		this.trigger('login');
 	},
 
 	logout: function(e) {
-		var _app = this;
 		e.preventDefault();
+
 		$.ajax({
 			url: '/auth/logout',
 			dataType: 'json',
