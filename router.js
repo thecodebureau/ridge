@@ -43,7 +43,7 @@ module.exports = Router.extend({
 				// load templates here so they are ready before any change event is triggered
 				_.each(resp && resp.compiled, dust.loadSource);
 
-				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled');
+				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled', 'navigation', 'site', 'organization');
 			}
 		})
 	}),
@@ -53,13 +53,13 @@ module.exports = Router.extend({
 	},
 
 	// creates router if given options object as argument
-	route: function(route, name, callback) {
+	route: function(path, name, callback) {
 		var router = this;
 		if (name == null || typeof name == 'object') {
 			router = new this.constructor(name);
 			name = '';
 		}
-		return route.call(router, route, name, callback);
+		return route.call(router, path, name, callback);
 	},
 
 	execute: function(callback, args) {
