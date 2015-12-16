@@ -1,90 +1,99 @@
-var dust = require('dustjs-linkedin');
+var dust = require('dustjs-linkedin'),
+	Router = Backbone.Router,
+	route = Router.prototype.route;
 
-module.exports = Backbone.Router.extend({
-	routes: {
-		'*page': 'page'
-	},
+// Parse query string into an object.
+// Understands array values serialized by jQuery.param() without nesting.
+//
+//	'a=1&a=2&b[]=3&c=' ->
+//	{ a: ['1', '2'], b: ['3'], c: '' }
+//
+function parseQueryString(query) {
+	var result = {};
 
-	// holds the current state and any pending state
+	_.each(query.replace(/\+/g, ' ').split('&'), function(key) {
+		var index = key.indexOf('='),
+			val = '';
+
+		if (index >= 0) {
+			val = decodeURIComponent(key.slice(index + 1));
+			key = key.slice(0, index);
+		}
+
+		key = decodeURIComponent(key);
+
+		// brackets notation for array value
+		if (key.slice(-2) == '[]') {
+			key = key.slice(0, -2);
+			val = [val];
+		}
+
+		// if there are multiple values per key, concatenate
+		result[key] = _.has(result, key) ? [].concat(result[key], val) : val;
+	});
+
+	return result;
+}
+
+module.exports = Router.extend({
+	// application states shared by router instances
 	states: new Backbone.Collection(null, {
 		model: Backbone.Model.extend({
-			url: function() {
-				return Backbone.history.root + encodeURI(decodeURI(this.id));
-			},
-
 			parse: function(resp) {
 				// load templates here so they are ready before any change event is triggered
 				_.each(resp && resp.compiled, dust.loadSource);
 
-				return _.has(resp, 'data') ? _.extend(_.pick(resp, 'template'), resp.data) : resp;
+				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled');
 			}
 		})
 	}),
 
-	current: function() {
-		return this.states.first();
+	initialize: function(options) {
+		this.options = _.omit(options, 'routes');
 	},
 
-	setCurrent: function(state) {
-		this.states.set(state, { current: true });
-	},
-
-	initialize: function() {
-		this.listenTo(this.states, 'change:loading', function(state, value) {
-			this.loading = value;
-			if (!value) this.setCurrent(state);
-		});
+	// creates router if given options object as argument
+	route: function(route, name, callback) {
+		var router = this;
+		if (name == null || typeof name == 'object') {
+			router = new this.constructor(name);
+			name = '';
+		}
+		return route.call(router, route, name, callback);
 	},
 
 	execute: function(callback, args) {
-		var query = args.pop(), params = _.extend({}, args);
+		var query = args.pop(),
+			search = null;
 
-		if (query) {
-			// parse query string
-			// assuming single value per field
-			_.each(query.split('&'), function(str) {
-				var index = str.indexOf('=');
-				if (index > 0)
-					params[str.slice(0, index)] = decodeURIComponent(str.slice(index + 1).replace('+', ' '));
-			});
-
-			// urlencode
-			query = encodeURI(decodeURI(query));
+		if (_.isString(query)) {
+			search = '?' + encodeURI(decodeURI(query));
+			query = parseQueryString(query);
 		}
 
-		this.params = params;
+		this.params = _.extend({}, args);
 		this.query = query;
+		this.search = search;
 
 		args.push(query);
-
-		this.loading = false;
-		this.states.remove(this.states.filter('loading'));
 
 		if (callback) callback.apply(this, args);
 	},
 
-	page: function(page, query) {
-		page = this.states.add({ id: page || '' });
-		page.set('query', query);
+	load: function(options) {
+		options = _.extend({ remove: false }, this.options, options);
 
-		// avoid fetching on initial route
-		if (this.states.length == 1) return;
+		var state = this.states.get(this.state),
+			history = Backbone.history;
 
-		if (page.has('template'))
-			this.setCurrent(page);
-		else
-			this.load(page, { data: query });
+		this.state = state ? state.pick('id') : {};
+
+		if (this.state.id == null)
+			this.state.id = history.root + decodeURI(history.fragment);
+
+		var existing = this.get(this.state);
+		state = this.states.set(this.state, options);
+
+		return state;
 	},
-
-	load: function(state, options) {
-		var xhr = state.set('loading', true).fetch(options);
-
-		return xhr.fail(function(xhr) {
-			var attrs = state.parse(xhr.responseJSON);
-			state.set(_.extend({ template: 'error', error: attrs }, attrs));
-		})
-		.always(function() {
-			state.unset('loading');
-		});
-	}
 });
