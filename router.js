@@ -83,16 +83,30 @@ module.exports = Router.extend({
 	load: function(options) {
 		options = _.extend({ remove: false }, this.options, options);
 
-		var state = this.states.get(this.state),
-			history = Backbone.history;
+		var states = this.states,
+			state = states.current,
+			history = Backbone.history,
+			id = history.root + decodeURI(history.fragment);
 
-		this.state = state ? state.pick('id') : {};
+		// cancel current transition
+		if (state && state.loading) {
+			states.remove(state);
+			state.loading.abort();
+		}
 
-		if (this.state.id == null)
-			this.state.id = history.root + decodeURI(history.fragment);
+		if (!states.get(this.id)) this.id = id;
 
-		var existing = this.get(this.state);
-		state = this.states.set(this.state, options);
+		state = _.pick(this, 'id', 'params', 'query', 'search');
+
+		var existing = states.get(state);
+
+		state = states.current = states.set(state, options);
+		state.url = encodeURI(id);
+
+		state.loading = !existing && state.fetch(options)
+		.always(function() {
+			state.loading = false;
+		});
 
 		return state;
 	},
