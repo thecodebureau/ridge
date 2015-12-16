@@ -1,6 +1,7 @@
 require('./util/dust-mod');
 
 var dust = require('dustjs-linkedin');
+var Router = require('./router');
 
 var app = module.exports = _.create(Backbone.View.prototype, {
 
@@ -41,6 +42,10 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	start: function(options) {
+		app.router = new Router({
+			routes: this.routes
+		});
+
 		Backbone.history.start(options);
 
 		// prevent scrolling on popState with { scrollRestoration: 'manual' }
@@ -57,13 +62,13 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 
 		var page = app.createPage(_.extend({
 			el: main.children()
-		}, main.data()));
+		}, app.router.options));
 
 		page.ready(page.scroll);
 	},
 
 	createPage: function(options) {
-		var model = _.has(options, 'model') ? options.model : _.result(app.router, 'current');
+		var model = _.has(options, 'model') ? options.model : app.router.states.current;
 
 		if (model instanceof Backbone.Model) {
 			options = _.extend(model.pick('template'), options);
