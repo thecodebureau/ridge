@@ -1,19 +1,3 @@
-
-var _filters = {
-	dot: function(value, key) {
-		// <select name="status" data-dot><option value="paid,false">Unpaid</option></select>
-		var arr = value.split(',');
-		name = name + '.' + arr[0];
-		value = arr[1];
-	},
-
-	regex: function(flags) {
-		return function(value, key) {
-			return '/' + value + '/' + flags;
-		};
-	}
-};
-
 var app = require('ridge');
 
 var FormView = require('ridge/views/form');
@@ -37,17 +21,13 @@ module.exports = FormView.extend({
 	},
 
 	initialize: function() {
-		this.listenTo(app.router.current(), 'change:query', this.setQuery);
+		this.listenTo(this.state, 'change:query', this.attach);
 
 		this.delegate('submit', this.submit.bind(this));
 	},
 
 	attach: function() {
-		this.setQuery();
-	},
-
-	setQuery: function() {
-		var params = app.router.params;
+		var params = this.state.get('params');
 
 		_.each(this.$el.prop('elements'), function(elem) {
 			if (elem.name)

@@ -1,26 +1,15 @@
-var app = require('../ridge'),
-	View = require('../view');
+var app = require('ridge'),
+	View = require('ridge/view');
 
 module.exports = View.extend({
-	constructor: function(options) {
-		if (options) {
-			var viewName = options.el instanceof $ ? options.el.data('view') :
-				_.defaults(options, options.model && options.model.get('page')).view;
+	tagName: 'section',
 
-			if (viewName)
-				return new app.views[viewName](options);
-		}
+	className: 'page',
+
+	constructor: function(options) {
+		if(!this.template)
+			this.template = options.template || options.state && options.state.get('page').template;
 
 		View.call(this, options);
-	},
-
-	attach: function() {
-		var _view = this;
-		
-		_view.views = _.compact(_view.$('[data-view]').toArray().map(function(el) {
-			var View = app.views[$(el).data('view')];
-
-			return View ? new View({ el: el, data: _view.data }) : null;
-		}));
 	}
 });
