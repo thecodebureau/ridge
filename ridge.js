@@ -68,14 +68,10 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	createPage: function(options) {
-		var model = _.has(options, 'model') ? options.model : app.router.states.current;
+		var view = options && options.view;
+		if (!_.isFunction(view)) view = app.views[view || 'Page'];
 
-		if (model instanceof Backbone.Model) {
-			options = _.extend(model.pick('template'), options);
-			options.model = model;
-		}
-
-		return app.currentPage = new app.views.Page(options);
+		return app.currentPage = new view(options);
 	},
 
 	switchPage: function(options) {
