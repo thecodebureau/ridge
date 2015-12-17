@@ -48,15 +48,27 @@ module.exports = Router.extend({
 		})
 	}),
 
-	initialize: function(options) {
+	initialize: function(options, routes) {
 		this.options = _.omit(options, 'routes');
+		this.routes = routes;
 	},
 
 	// creates router if given options object as argument
 	route: function(path, name, callback) {
-		var router = this;
-		if (name == null || typeof name == 'object') {
-			router = new this.constructor(name);
+		var router = this,
+			root = router.root;
+
+		if (_.isString(path)) {
+			if (root) path = root + path;
+			if (path) root = (path + '/').replace(/\/+$/, '/');
+		}
+
+		if (name && typeof name == 'object') {
+			router = name instanceof Router ? name :
+				new this.constructor(_.defaults({ routes: null }, name), name.routes);
+			router.root = root;
+			router._bindRoutes();
+			delete router.routes;
 			name = '';
 		}
 		return route.call(router, path, name, callback);
