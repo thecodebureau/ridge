@@ -39,6 +39,11 @@ module.exports = Router.extend({
 	// application states shared by router instances
 	states: new Backbone.Collection(null, {
 		model: Backbone.Model.extend({
+			url: function() {
+				var id = this.get('id');
+				return id && encodeURI(id);
+			},
+
 			parse: function(resp) {
 				// load templates here so they are ready before any change event is triggered
 				_.each(resp && resp.compiled, dust.loadSource);
@@ -84,6 +89,8 @@ module.exports = Router.extend({
 		}
 
 		this.params = _.extend({}, args);
+		if (Backbone.history._usePushState)
+			_.defaults(this.params, window.history.state);
 		this.query = query;
 		this.search = search;
 
@@ -97,8 +104,10 @@ module.exports = Router.extend({
 
 		var states = this.states,
 			state = states.current,
-			history = Backbone.history,
-			id = history.root + decodeURI(history.fragment);
+			history = Backbone.history;
+
+		if (this.id == null || options.reload)
+			this.id = decodeURI(options.url || history.root + history.fragment);
 
 		// cancel current transition
 		if (state && state.loading) {
@@ -106,14 +115,11 @@ module.exports = Router.extend({
 			state.loading.abort();
 		}
 
-		if (!states.get(this.id)) this.id = id;
-
 		state = _.pick(this, 'id', 'params', 'query', 'search');
 
 		var existing = states.get(state);
 
 		state = states.current = states.set(state, options);
-		state.url = encodeURI(id);
 
 		state.loading = !existing && state.fetch(options)
 		.always(function() {
