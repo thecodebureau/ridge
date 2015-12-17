@@ -9,7 +9,7 @@ module.exports = View.extend({
 	},
 
 	render: function() {
-		app.router.current().set('totalCount', this.collection.totalCount);
+		this.state.set('totalCount', this.collection.totalCount);
 
 		return View.prototype.render.apply(this);
 	}

@@ -61,6 +61,7 @@ function createViews(view) {
 		var defaults = {
 			collection: view.collection,
 			model: view.model,
+			state: view.state,
 			data: view.data
 		};
 
@@ -104,7 +105,7 @@ var View = Backbone.View.extend({
 	},
 
 	constructor: function(options) {
-		_.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews'));
+		_.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews', 'state'));
 
 		// we clone to prevent views referencing the same object
 		this.data = options && options.data ? _.clone(options.data) : {};
@@ -132,11 +133,11 @@ var View = Backbone.View.extend({
 
 		var data = _.result(_view, 'data');
 
-		if (_view.model) {
-			var modelData = _view.model.toJSON();
+		if (_view.state) 
+			_.extend(data, _view.state.toJSON());
 
-			_.extend(data, modelData);
-		}
+		if (_view.model) 
+			_.extend(data, _view.model.toJSON());
 
 		_view.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
 
