@@ -42,9 +42,13 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	start: function(options) {
+		app.elements = { main: $('main') };
+
 		app.router = new Router({
 			routes: this.routes
 		});
+		
+		app.router.states.reset(INITIAL_STATE, { parse: true });
 
 		Backbone.history.start(options);
 
@@ -54,17 +58,6 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		$(function() {
 			Backbone.View.call(app);
 		});
-	},
-
-	initialize: function() {
-		var main = app.$('main');
-		app.elements = { main: main };
-
-		var page = app.createPage(_.extend({
-			el: main.children()
-		}, app.router.options));
-
-		page.ready(page.scroll);
 	},
 
 	createPage: function(options) {
@@ -77,9 +70,14 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	switchPage: function(options) {
 		window.scrollTo(0, 0);
 
-		app.currentPage.leave(options);
-
-		app.createPage(options).enter(app.elements.main, options);
+		if(app.currentPage) {
+			app.currentPage.leave(options);
+			app.createPage(options).enter(app.elements.main, options);
+		} else {
+			app.createPage(_.extend({
+				el: app.elements.main.children()
+			}, options));
+		}
 
 		document.title = _.result(app.currentPage, 'title', document.title);
 	},
