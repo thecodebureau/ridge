@@ -38,6 +38,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 					_.extend(app[key] || {}, value) : value;
 			});
 		});
+
 		return app;
 	},
 
@@ -73,7 +74,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			name: name
 		}, router.options);
 
-		var done = app.switchPage.bind(this, options);
+		var done = app.createPage.bind(this, options);
 
 		if (state.loading)
 			state.loading.done(done);
@@ -82,46 +83,28 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	createPage: function(options) {
-		var view = options && options.view;
+		var $el;
 
-		if (!_.isFunction(view)) view = app.views[view || 'Page'];
+		if(!app.currentPage && ($el = app.elements.main.children()).length) 
+			options.el = $el;
 
-		return app.currentPage = new view(options);
-	},
+		var PageView = options && options.view;
 
-	switchPage: function(options) {
-		//var index = app.navigation.render().index();
+		if (!_.isFunction(PageView)) PageView = app.views[PageView || 'Page'];
 
-		// set animation class
-		//options.className = 
-		//	index > navIndex ? 'forward' :
-		//	index < navIndex ? 'back' :
-		//	'';
-
-		//navIndex = index;
-
-		if(app.currentPage) {
-			if(window.history.scrollRestoration === 'manual') {
-				window.scrollTo(0, 0);
-
-				_.result(app.currentPage, 'unscroll');
-			}
-
-			app.currentPage.leave(options);
-		} else {
-			var $el = app.elements.main.children();
-
-			if($el.length) options.el = $el;
-		}
-
-		var page = app.createPage(options);
+		var page = new PageView(options);
 
 		if(!page.el.parentNode)
-			page.enter(app.elements.main, options);
+			app.switchPage(page, options);
+		else
+			app.currentPage = page;
+	},
 
-		document.body.className = options.state.get('page').name;
+	switchPage: function(page, options) {
+		if(app.currentPage)
+			app.currentPage.leave(options);
 
-		document.title = _.result(page, 'title', document.title);
+		app.currentPage = page.enter(app.elements.main, options);
 	},
 
 	remember: function(state) {
