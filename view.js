@@ -88,7 +88,7 @@ function createViews(view) {
 }
 
 function getElements(view) {
-	return _.mapObject(view.elements, function(selector, name) {
+	return _.mapValues(view.elements, function(selector, name) {
 		selector = _.isString(selector) ? selector : selector.selector;
 
 		return view.$(selector);
