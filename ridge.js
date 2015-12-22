@@ -1,10 +1,10 @@
 require('./util/dust-mod');
 
 var dust = require('dustjs-linkedin');
+
 var Router = require('./router');
 
 var app = module.exports = _.create(Backbone.View.prototype, {
-
 	dust: dust,
 
 	helpers: dust.helpers,
@@ -47,39 +47,81 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		app.router = new Router({
 			routes: this.routes
 		});
-		
-		app.router.states.reset(INITIAL_STATE, { parse: true });
+
+		app.router.states.reset(options.states, { parse: true });
+
+		Backbone.history.on('route', app.onRoute);
 
 		Backbone.history.start(options);
 
 		// prevent scrolling on popState with { scrollRestoration: 'manual' }
-		_.extend(window.history, _.pick(options, 'scrollRestoration'));
+		if(window.history.scrollRestoration)
+			_.extend(window.history, _.pick(options, 'scrollRestoration'));
 
-		$(function() {
-			Backbone.View.call(app);
-		});
+		Backbone.View.call(app);
+	},
+
+	onRoute: function(router, name) {
+		var previous = router.states.current,
+			state = router.load();
+
+		if (previous && state === previous) return;
+
+		var options = _.extend({
+			state: state,
+			router: router,
+			name: name
+		}, router.options);
+
+		var done = app.switchPage.bind(this, options);
+
+		if (state.loading)
+			state.loading.done(done);
+		else
+			done();
 	},
 
 	createPage: function(options) {
 		var view = options && options.view;
+
 		if (!_.isFunction(view)) view = app.views[view || 'Page'];
 
 		return app.currentPage = new view(options);
 	},
 
 	switchPage: function(options) {
-		window.scrollTo(0, 0);
+		//var index = app.navigation.render().index();
+
+		// set animation class
+		//options.className = 
+		//	index > navIndex ? 'forward' :
+		//	index < navIndex ? 'back' :
+		//	'';
+
+		//navIndex = index;
 
 		if(app.currentPage) {
+			if(window.history.scrollRestoration === 'manual') {
+				window.scrollTo(0, 0);
+
+				_.result(app.currentPage, 'unscroll');
+			}
+
 			app.currentPage.leave(options);
-			app.createPage(options).enter(app.elements.main, options);
 		} else {
-			app.createPage(_.extend({
-				el: app.elements.main.children()
-			}, options));
+			var $el = app.elements.main.children();
+
+			if($el.length) options.el = $el;
 		}
 
-		document.title = _.result(app.currentPage, 'title', document.title);
+		var page = app.createPage(options);
+
+		if(!page.el.parentNode)
+			page.enter(app.elements.main, options);
+
+		document.body.className = options.state.get('page').name;
+
+		document.title = _.result(page, 'title', document.title);
 	},
 
 	remember: function(state) {
