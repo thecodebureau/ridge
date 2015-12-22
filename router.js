@@ -121,7 +121,7 @@ module.exports = Router.extend({
 
 		state = states.current = states.set(state, options);
 
-		state.loading = !existing && state.fetch(options)
+		state.loading = (!existing || options.reload) && state.fetch(options)
 		.always(function() {
 			state.loading = false;
 		});
