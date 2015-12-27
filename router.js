@@ -48,7 +48,7 @@ module.exports = Router.extend({
 				// load templates here so they are ready before any change event is triggered
 				_.each(resp && resp.compiled, dust.loadSource);
 
-				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled', 'navigation', 'site', 'organization');
+				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled', 'navigation', 'site');
 			}
 		})
 	}),
@@ -91,7 +91,7 @@ module.exports = Router.extend({
 		this.params = _.extend({}, args);
 		if (Backbone.history._usePushState)
 			_.defaults(this.params, window.history.state);
-		this.query = query;
+		this.query = query || {};
 		this.search = search;
 
 		args.push(query);
