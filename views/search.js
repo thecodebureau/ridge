@@ -3,6 +3,10 @@ var app = require('ridge');
 var FormView = require('ridge/views/form');
 
 module.exports = FormView.extend({
+	events: {
+		'submit': 'submit'
+	},
+
 	submit: function(e) {
 		e.preventDefault();
 
@@ -22,16 +26,14 @@ module.exports = FormView.extend({
 
 	initialize: function() {
 		this.listenTo(this.state, 'change:query', this.attach);
-
-		this.delegate('submit', this.submit.bind(this));
 	},
 
-	attach: function() {
-		var params = this.state.get('params');
+	attach: function(model, value) {
+		var query = this.state.get('query');
 
 		_.each(this.$el.prop('elements'), function(elem) {
 			if (elem.name)
-				$(elem).val(params[elem.name]).trigger('change');
+				$(elem).val(query[elem.name]).trigger('change');
 		});
 	}
 });
