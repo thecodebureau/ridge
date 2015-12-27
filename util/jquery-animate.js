@@ -68,10 +68,10 @@ $.fn.extend({
 			this.hide(options);
 	},
 
-	enter: function(element, options) {
+	enter: function(element, options, complete) {
 		options = options || {};
 
-		var enter = transition('enter', options);
+		var enter = transition('enter', options, complete);
 
 		return this.queue(function() {
 			$(element)[options.method || 'append'](this);
