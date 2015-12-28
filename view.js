@@ -88,7 +88,7 @@ function createViews(view) {
 }
 
 function getElements(view) {
-	return _.mapObject(view.elements, function(selector, name) {
+	return _.mapValues(view.elements, function(selector, name) {
 		selector = _.isString(selector) ? selector : selector.selector;
 
 		return view.$(selector);
@@ -127,21 +127,13 @@ var View = Backbone.View.extend({
 	},
 
 	render: function() {
-		if(this.unobserve) this.unobserve();
+		_.result(this, 'unobserve');
 
-		var _view = this;
+		var data = _.extend({}, app.context, this.data, _.result(this.state, 'toJSON'), _.result(this.model, 'toJSON'));
 
-		var data = _.result(_view, 'data');
+		this.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
 
-		if (_view.state) 
-			_.extend(data, _view.state.toJSON());
-
-		if (_view.model) 
-			_.extend(data, _view.model.toJSON());
-
-		_view.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
-
-		return _view;
+		return this;
 	},
 
 	// Render Dust template and update element, using the fx queue

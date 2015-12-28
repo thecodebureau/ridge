@@ -9,8 +9,6 @@ module.exports = View.extend({
 	},
 
 	render: function() {
-		this.state.set('totalCount', this.collection.totalCount);
-
 		return View.prototype.render.apply(this);
 	}
 });

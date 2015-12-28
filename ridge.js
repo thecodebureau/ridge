@@ -1,10 +1,10 @@
 require('./util/dust-mod');
 
 var dust = require('dustjs-linkedin');
+
 var Router = require('./router');
 
 var app = module.exports = _.create(Backbone.View.prototype, {
-
 	dust: dust,
 
 	helpers: dust.helpers,
@@ -38,50 +38,73 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 					_.extend(app[key] || {}, value) : value;
 			});
 		});
+
 		return app;
 	},
 
 	start: function(options) {
+		app.elements = { main: $('main') };
+
 		app.router = new Router({
 			routes: this.routes
 		});
 
+		app.router.states.reset(options.states, { parse: true });
+
+		Backbone.history.on('route', app.onRoute);
+
 		Backbone.history.start(options);
 
 		// prevent scrolling on popState with { scrollRestoration: 'manual' }
-		_.extend(window.history, _.pick(options, 'scrollRestoration'));
+		if(window.history.scrollRestoration)
+			_.extend(window.history, _.pick(options, 'scrollRestoration'));
 
-		$(function() {
-			Backbone.View.call(app);
-		});
+		Backbone.View.call(app);
 	},
 
-	initialize: function() {
-		var main = app.$('main');
-		app.elements = { main: main };
+	onRoute: function(router, name) {
+		var previous = router.states.current,
+			state = router.load();
 
-		var page = app.createPage(_.extend({
-			el: main.children()
-		}, app.router.options));
+		if (previous && state === previous) return;
 
-		page.ready(page.scroll);
+		var options = _.extend({
+			state: state,
+			router: router,
+			name: name
+		}, router.options);
+
+		var done = app.createPage.bind(this, options);
+
+		if (state.loading)
+			state.loading.done(done);
+		else
+			done();
 	},
 
 	createPage: function(options) {
-		var view = options && options.view;
-		if (!_.isFunction(view)) view = app.views[view || 'Page'];
+		var $el;
 
-		return app.currentPage = new view(options);
+		if(!app.currentPage && ($el = app.elements.main.children()).length) 
+			options.el = $el;
+
+		var PageView = options && options.view;
+
+		if (!_.isFunction(PageView)) PageView = app.views[PageView || 'Page'];
+
+		var page = new PageView(options);
+
+		if(!page.el.parentNode)
+			app.switchPage(page, options);
+		else
+			app.currentPage = page;
 	},
 
-	switchPage: function(options) {
-		window.scrollTo(0, 0);
+	switchPage: function(page, options) {
+		if(app.currentPage)
+			app.currentPage.leave(options);
 
-		app.currentPage.leave(options);
-
-		app.createPage(options).enter(app.elements.main, options);
-
-		document.title = _.result(app.currentPage, 'title', document.title);
+		app.currentPage = page.enter(app.elements.main, options);
 	},
 
 	remember: function(state) {

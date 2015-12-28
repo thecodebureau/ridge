@@ -28,7 +28,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
 			// use properties from model validation to set up more bindings.
 			// all model validation properties are assumed to be 'value' getter
 			// and all selectors in form view default to [name=""] instead of [data-hook=""]
-			this.bindings = _.mapObject(_.defaults(this.bindings || {}, _.mapObject(this.model.validation, function(value, key) {
+			this.bindings = _.mapValues(_.defaults(this.bindings || {}, _.mapValues(this.model.validation, function(value, key) {
 				return 'value';
 			})), function(value, key) {
 				return _.isObject(value) ? value : {
