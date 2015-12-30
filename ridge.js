@@ -38,7 +38,6 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 					_.extend(app[key] || {}, value) : value;
 			});
 		});
-
 		return app;
 	},
 
@@ -74,7 +73,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			name: name
 		}, router.options);
 
-		var done = app.createPage.bind(this, options);
+		var done = app.switchPage.bind(this, options);
 
 		if (state.loading)
 			state.loading.done(done);
@@ -83,28 +82,46 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	createPage: function(options) {
-		var $el;
+		var view = options && options.view;
 
-		if(!app.currentPage && ($el = app.elements.main.children()).length) 
-			options.el = $el;
+		if (!_.isFunction(view)) view = app.views[view || 'Page'];
 
-		var PageView = options && options.view;
-
-		if (!_.isFunction(PageView)) PageView = app.views[PageView || 'Page'];
-
-		var page = new PageView(options);
-
-		if(!page.el.parentNode)
-			app.switchPage(page, options);
-		else
-			app.currentPage = page;
+		return app.currentPage = new view(options);
 	},
 
-	switchPage: function(page, options) {
-		if(app.currentPage)
-			app.currentPage.leave(options);
+	switchPage: function(options) {
+		//var index = app.navigation.render().index();
 
-		app.currentPage = page.enter(app.elements.main, options);
+		// set animation class
+		//options.className = 
+		//	index > navIndex ? 'forward' :
+		//	index < navIndex ? 'back' :
+		//	'';
+
+		//navIndex = index;
+
+		if(app.currentPage) {
+			if(window.history.scrollRestoration === 'manual') {
+				window.scrollTo(0, 0);
+
+				_.result(app.currentPage, 'unscroll');
+			}
+
+			app.currentPage.leave(options);
+		} else {
+			var $el = app.elements.main.children();
+
+			if($el.length) options.el = $el;
+		}
+
+		var page = app.createPage(options);
+
+		if(!page.el.parentNode)
+			page.enter(app.elements.main, options);
+
+		document.body.className = options.state.get('page').name;
+
+		document.title = _.result(page, 'title', document.title);
 	},
 
 	remember: function(state) {
