@@ -1,31 +1,22 @@
-var set = Backbone.Model.prototype.set;
+var flatten = require('./util/flatten');
 
 module.exports = Backbone.Model.extend({
 	constructor: function(attrs, opts) {
 		Backbone.Model.apply(this, arguments);
 
-		var _model = this;
+		var self = this;
 
-		_model.originalAttributes = _.clone(_model.attributes);
+		this.originalAttributes = _.cloneDeep(this.attributes);
 
-		_model.on('sync', function() {
-			_model.originalAttributes = _.clone(_model.attributes);
+		this.on('sync', function() {
+			self.originalAttributes = _.cloneDeep(this.attributes);
 		});
 
 		_.extend(this, _.pick(opts, 'validation'));
 	},
 
 	get: function(attr) {
-		var path = attr.split('.'),
-			val = this.attributes[path.shift()];
-
-		while ((attr = path.shift()) != null) {
-			if (!_.has(val, attr)) return;
-
-			val = val[attr];
-		}
-
-		return val;
+		return _.get(this.attributes, attr);
 	},
 
 	idAttribute: '_id',
@@ -37,89 +28,85 @@ module.exports = Backbone.Model.extend({
 	set: function(key, val, options) {
 		if (key == null) return this;
 
-		if (typeof key == 'object') {
+		// Handle both `"key", value` and `{key: value}` -style arguments.
+		var attrs;
+		if (typeof key === 'object') {
 			attrs = key;
 			options = val;
 		} else {
 			(attrs = {})[key] = val;
 		}
 
-		return set.call(this, this.unflatten(attrs), options);
-	},
+		options || (options = {});
 
-	// pick nested attributes
-	flatten: function(attrs, keys) {
-		attrs = this.unflatten(attrs);
+		// Run validation.
+		if (!this._validate(attrs, options)) return false;
 
-		var result = {};
+		// Extract attributes and options.
+		var unset      = options.unset;
+		var silent     = options.silent;
+		var changes    = [];
+		var changing   = this._changing;
+		this._changing = true;
 
-		_.each(keys, function(key) {
-			var path = key.split('.'),
-				val = attrs;
+		if (!changing) {
+			this._previousAttributes = _.clone(this.attributes);
+			this.changed = {};
+		}
 
-			while (path.length) {
-				var attr = path.shift();
+		var current = this.attributes;
+		var changed = this.changed;
+		var prev    = this._previousAttributes;
 
-				if (!_.has(val, attr)) return;
-
-				val = val[attr];
-			}
-
-			result[key] = val;
-		});
-
-		return result;
-	},
-
-	// return an unflattened copy of attrs
-	// merging dot-delimited attributes with nested attributes in this.attributes
-	unflatten: function(attrs) {
-		var result = {},
-			attributes = this.attributes;
-
+		// For each `set` attribute, update or delete the current value.
 		for (var attr in attrs) {
-			var val = attrs[attr],
-				path = attr.split('.');
+			val = attrs[attr];
 
-			if (path.length > 1) {
-				attr = path.pop();
+			if (!_.isEqual(_.get(current, attr), val)) changes.push(attr);
 
-				var obj = _.reduce(path, makeNested, result);
-
-				if (obj[attr] !== val)
-					obj[attr] = val;
+			if (!_.isEqual(_.get(prev, attr), val)) {
+				changed[attr] = val;
 			} else {
-				result[attr] = val;
+				delete changed[attr];
+			}
+
+			_.set(this.attributes, attr, val);
+		}
+
+		// Update the `id`.
+		this.id = this.get(this.idAttribute);
+
+		// Trigger all relevant attribute changes.
+		if (!silent) {
+			if (changes.length) this._pending = options;
+			for (var i = 0; i < changes.length; i++) {
+				this.trigger('change:' + changes[i], this, _.get(current, changes[i]), options);
 			}
 		}
 
-		function makeNested(obj, key, level) {
-			var attrs = (level || _.has(obj, key) ? obj : attributes)[key];
-
-			obj = obj[key] = {};
-
-			_.some(attrs, function(val, key) {
-				// check that we are not iterating an array-like object
-				if (typeof key == 'number') return true;
-				obj[key] = val;
-			});
-
-			return obj;
+		// You might be wondering why there's a `while` loop here. Changes can
+		// be recursively nested within `"change"` events.
+		if (changing) return this;
+		if (!silent) {
+			while (this._pending) {
+				options = this._pending;
+				this._pending = false;
+				this.trigger('change', this, options);
+			}
 		}
-
-		return result;
+		this._pending = false;
+		this._changing = false;
+		return this;
 	},
+
 
 	reset: function(options) {
-		var attrs = {};
+		var set = flatten(this.originalAttributes),
+			unset = _.omit(flatten(this.attributes), _.keys(set));
 
-		for (var key in this.attributes) attrs[key] = void 0;
+		var result = this.unset(unset, options) && this.set(set, options);
 
-		this.originalAttributes = _.extend(attrs, this.originalAttributes);
-
-		var result = this.set(attrs, options);
-
-		if(result && (!options || !options.silent))
+		if(result && !(options && options.silent))
 			this.trigger('reset');
 
 		return result;
