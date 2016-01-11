@@ -55,11 +55,11 @@ module.exports = {
 	},
 
 	isValid: function(options) {
-		return this.validate({}, _.defaults({ validateAll: true }, options));
+		return this.validate(null, options);
 	},
 
 	_validate: function(attrs, options) {
-		// Do not value internal set in save: (if (serverAttrs && !model.set(serverAttrs, options)) return false;)
+		// Do not value internal set in save, which will be called with options.xhr: (if (serverAttrs && !model.set(serverAttrs, options)) return false;)
 		if (options.validate && !options.xhr)
 			this.validate(attrs, options);
 			
@@ -68,22 +68,24 @@ module.exports = {
 	},
 
 	validate: function(attrs, options) {
-		var _model = this,
+		var self = this,
 			errors = {},
 			valid = [];
 
-		if(options && options.validateAll) {
-			attrs = _.object(_.map(_.keys(_model.validation), function(key) {
-				return [ key, _model.get(key) ];
-			}));
-		} else
-			attrs = _model.flatten(attrs, _.keys(_model.validation));
+		if(attrs) {
+			// TODO does not handle testing a.b.c if a.b is set (which should probably fail)
+			attrs = _.pick(attrs, _.keys(this.validation));
+		} else {
+			attrs = _.mapValues(this.validation, function(value, key) {
+				return self.get(key);
+			});
+		}
 
 		_.each(attrs, function(val, key) {
-			if (!_.isFunction(_model.validation[key]))
-				_model.validation[key] = setupValidation(_model.validation[key], key, _model);
+			if (!_.isFunction(self.validation[key]))
+				self.validation[key] = setupValidation(self.validation[key], key, self);
 
-			var error = _model.validation[key].call(_model, attrs[key]);
+			var error = self.validation[key].call(self, attrs[key]);
 
 			if(error) 
 				errors[key] = error;
