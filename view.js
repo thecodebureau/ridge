@@ -56,35 +56,50 @@ function updateElement(html, tag, endTag, tagName) {
 	_.invoke(this.views, 'remove');
 }
 
-function createViews(view) {
-	return _.flatten(_.map(view.subviews, function(options, name) {
-		var defaults = {
-			collection: view.collection,
-			model: view.model,
-			state: view.state,
-			data: view.data
-		};
+function createViews() {
+	var self = this;
 
-		var Subview = app.views[name];
+	return _.flatten(_.map(this.subviews, function(subview, name) {
+		subview = parseSubview.call(self, subview);
 
-		if(!_.isFunction(Subview)) throw new Error('No view "' + name + '" found, or it is not a function!');
+		var Subview = subview.constructor;
 
-		var selector = options;
-		if ($.isPlainObject(options)) {
-			selector = options.selector;
+		if(!Subview) return;
 
-			_.defaults(options, defaults);
-
-			if (!selector) return new Subview(options);
-		} else {
-			options = _.clone(defaults);
+		if(!subview.multi) {
+			subview.el = self.$(subview.el);
+			return (self[name] = new Subview(subview));
 		}
 
-		return _.map(view.$(selector), function(elem) {
-			options.el = elem;
-			return new Subview(options);
-		});
+		return (self[name] = _.map(self.$(subview.el), function(el) {
+			subview.el = el;
+			return new Subview(subview);
+		}));
 	}));
+}
+
+function parseSubview(subview) {
+	var defaults = {
+		collection: this.collection,
+		model: this.model,
+		state: this.state,
+		data: this.data
+	};
+
+	if(_.isArray(subview)) {
+		subview = _.extend({
+			el: subview[0],
+			constructor: subview[1],
+		}, subview[2]);
+	}
+
+	subview.parent = this;
+	//subview.name = name;
+
+	if(!subview.prepareView)
+		_.defaults(subview, defaults);
+
+	return subview;
 }
 
 function getElements(view) {
@@ -111,12 +126,6 @@ var View = Backbone.View.extend({
 		this.data = options && options.data ? _.clone(options.data) : {};
 
 		Backbone.View.apply(this, arguments);
-
-		if(_.isString(this.model))
-			this.model = new app.models[this.model]();
-
-		if(_.isString(this.collection))
-			this.collection = new app.collections[this.collection]();
 
 		this.rendered = (this.el && (this.el.children.length > 0 || !!this.el.textContent.trim()));
 
@@ -164,7 +173,7 @@ var View = Backbone.View.extend({
 	},
 
 	_attach: function() {
-		this.views = createViews(this);
+		this.views = createViews.call(this);
 		this.elements = getElements(this);
 		if(this.attach) this.attach();
 	},
