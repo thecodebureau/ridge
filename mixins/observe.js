@@ -1,163 +1,168 @@
-var _getters = require('ridge/getters');
-var _setters = require('ridge/setters');
+var domGetters = require('ridge/util/dom-getters');
+var domSetters = require('ridge/util/dom-setters');
 
-function _setter(/* fncs */) {
-	// NOTE element can be an array of elements (currently only for checkbox and radio)
-	var fncs = _.toArray(arguments);
-	return function($element, value) {
-		fncs.forEach(function(fnc) {
-			fnc($element, value);
+/*
+ * Function that returns an event handler that is called when the models change
+ * events are triggered.  It uses the bindings setter to place the value from
+ * the model into the DOM.
+ */
+function makeSetter(setters, selector) {
+	setters = parseSetters(setters);
+
+	return setters.length < 1 ? undefined : function(model, value, data) {
+		if(data && data.internal) return;
+
+		var $el = this.$(selector);
+
+		if($el.length < 1) return;
+
+		setters.forEach(function(fnc) {
+			fnc($el, value);
 		});
 	};
 }
 
-function _filter(/* filters */) {
-	var filters = _.toArray(arguments);
+/*
+ * Returns an event handler that is called when DOM events are triggered.
+ * It uses the bindings getter to extract a value from
+ * the DOM, and the set that value on the model
+ */
+function makeGetter(fnc, key) {
+	return function (e, data) {
+		var el = e.currentTarget;
 
-	return function(value) {
-		filters.forEach(function(fnc) {
-			value = fnc(value);
-		});
+		// TODO manage delayInput on all elements if $el.length > 1
+		if(data && data.internal) return;
 
-		return value;
+		var value = fnc(el);
+
+		// TODO... should probably unset here
+		if(!value && !_.isBoolean(value) && value !== 0) value = null;
+
+		// TODO better passing of observeOptions
+		this.model.set(key, value, this.model.observeOptions);
 	};
 }
 
-function prepareBinding(binding, key) {
-		if(_.isString(binding))
-			binding = {
-				hook: key,
-				type: binding
+/*
+ * Creates a set plain object from a ':' seperated string
+ */
+function parseSetters(setters) {
+	return _.compact(_.map(setters, function(setter) {
+		if(_.isFunction(setter)) return setter;
+
+		if(_.isString(setter)) {
+			var arr = setter.split(':');
+
+			setter = {
+				type: _.first(arr),
+				options: _.rest(arr)
 			};
-		else
-			binding = _.clone(binding);
+		}
 
-		if(binding.hook) binding.selector = '[data-hook="' + binding.hook + '"]';
+		var fnc = domSetters[setter.type];
 
-		if(binding.type) binding.get = binding.set = binding.type;
+		if(fnc && setter.options.length > 0)
+			fnc = fnc.apply(null, _.isArray(setter.options) ? setter.options : [ setter.options ]);
 
-		if(!_.isArray(binding.set)) binding.set = [ binding.set ];
+		return fnc;
+	}));
+}
 
-		binding.namespace = key.split('.');
+/*
+ * Fills in any blanks. For example, { type: 'value' } is short for { get:
+ * 'value', set: 'value' }.  Also, passing a string as an object will default
+ * selector to the string and set type to 'value'. NOTE: maybe it should
+ * default to text or HTML? Needs to be called with the view as context (this argument)
+ * so the right element is found
+ */
+function parseBindings(bindings, key) {
+	var self = this;
 
-		if(binding.get)
-			binding.getter = _getters[binding.get];
+	if(_.isString(bindings)) {
+		var selector = bindings;
 
-		if(binding.set)
-			binding.setter = _setter.apply(null, binding.set.map(function(name) {
-				return _setters[name];
-			}));
+		(bindings = {})[selector] = { set: 'text' };
+	}
 
-		return binding;
+	return _.map(bindings, function(binding, selector) {
+		var get, set = [];
+
+		if(_.isString(binding)) {
+			set.push(binding);
+		} else {
+			if(binding.both) {
+				get = binding.both;
+				set.push(binding.both);
+			} else
+				get = binding.get;
+
+			if(binding.set) 
+				set.push(binding.set);
+		}
+
+		var domGetter = domGetters[get],
+			getter;
+
+		if(domGetter) {
+			getter = makeGetter(domGetter, key).bind(self);
+			getter.events = domGetter.events;
+		}
+
+		return {
+			key: key,
+			selector: selector,
+			//getter: getter ? getter.bind(self) : undefined,
+			getter: getter,
+			setter: makeSetter(set, selector)
+		};
+	});
 }
 
 module.exports = {
 	observe: function(opts) {
-		var _view = this;
+		var self = this;
 
 		this.unobserve();
 
-		this._bindings = [];
-		
-		_.each(this.bindings, function bind(binding, key) {
-			function setHandler(model, value, data) {
-				if(data && data.internal) return;
+		if(!this.model) return;
 
-				// TODO should probably be able to loop through value
-				for(var i = 0, ref = model.changedAttributes(); ref && i < binding.namespace.length; i++) {
-					ref = ref[binding.namespace[i]];
-				}
+		this.model.observeOptions = opts = _.defaults({ internal: true }, opts);
 
-				binding.setter(binding.$el, ref != null ? ref : null);
-			}
+		this._bindings = _.chain(this.bindings).map(parseBindings, this).flatten().map(function(binding) {
+			if(binding.setter) 
+				self.listenTo(self.model, 'change:' + binding.key, binding.setter);
 
-			function getHandler(e, data) {
-				data = data || e.data || {};
+			_.each(binding.getter && binding.getter.events, function(eventName) {
+				self.delegate(eventName, binding.selector, binding.getter);
+			});
 
-				// binding.getter will be undefined if an old event, ie blur, fires
-				// after the view is re-rendered
-				// TODO manage delayInput on all elements if $el.length > 1
-				if(data.internal || !binding.getter || e.type === 'input' && $el[0].delayInput) return;
+			return binding;
+		}).value();
 
-				delete $el[0].delayInput;
-
-				var value = binding.getter($el);
-
-				if(!value && !_.isBoolean(value) && value !== 0) value = null;
-
-				if(value === binding.previousValue)
-					return;
-
-				binding.previousValue = value;
-
-				_view.model.set(binding.namespace.join('.'), value, _.defaults({
-					internal: true
-				}, opts));
-			}
-
-			if(_.isArray(binding)) return binding.forEach(function(binding) { bind(binding, key); });
-
-			binding = prepareBinding(binding, key);
-
-			var $el = _view.$(binding.selector);
-
-			if($el.length === 0) return;
-
-			if(opts && opts.delayInput)
-				$el[0].delayInput = true;
-
-			if(binding.setter) {
-				_view.listenTo(_view.model, 'change:' + binding.namespace[0], setHandler);
-			}
-
-			if(binding.getter && binding.getter.events) {
-				_.each(binding.getter.events, function(eventName) {
-					$el.on(eventName, getHandler);
-				});
-			}
-
-			_view._bindings.push(_.extend(binding, {
-				$el: $el,
-				setHandler: setHandler
-			}));
-
-		});
+		if(opts.populate)
+			this.populate();
 	},
 
 	unobserve: function(clear) {
-		var view = this;
+		var self = this;
 
-		_.each(view._bindings, function(binding) {
-			view.stopListening(view.model, 'change:' + binding.namespace[0], binding.setHandler);
+		_.each(this._bindings, function(binding) {
+			self.stopListening(self.model, 'change:' + binding.key, binding.setter);
 
-			_.each(binding.events, function(handler, eventName) {
-				binding.$el.off(eventName, handler);
+			_.each(binding.getter && binding.getter.events, function(eventName) {
+				self.undelegate(eventName, binding.selector, binding.getter);
 			});
-
-			delete binding.$el;
-			delete binding.getter;
-			delete binding.setter;
-			delete binding.namespace;
-			delete binding.handler;
 		});
 
 		delete this._bindings;
 	},
 
 	populate: function(clear) {
-		var _view = this;
+		var self = this;
 
 		this._bindings.forEach(function(binding) {
-			namespace = binding.namespace;
-
-			for(var i = 0, ref = _view.model.attributes; i < namespace.length; i++) {
-				if(ref)
-					ref = ref[namespace[i]];
-			}
-
-			if(ref && binding.filter) ref = binding.filter(ref);
-
-			binding.setter(binding.$el, ref);
+			binding.setter.call(self, null, self.model.get(binding.key));
 		});
 	},
 };
