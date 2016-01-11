@@ -1,6 +1,6 @@
 var app = require('ridge');
 
-var FormView = require('ridge/views/form');
+var FormView = require('ridge/views/form-styling');
 
 module.exports = FormView.extend({
 	events: {
