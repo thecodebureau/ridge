@@ -1,23 +1,11 @@
-var app = require('ridge');
-
 module.exports = Backbone.Collection.extend({
 	constructor: function(attributes, options) {
-		var _collection = this;
+		Backbone.Collection.apply(this, arguments);
 
-		Backbone.Collection.apply(_collection, arguments);
+		if(!this.model)
+			this.model = require('ridge/model');
 
-		if(_.isString(_collection.model)) {
-			_collection.modelName = _collection.model;
-
-			if(app.models[_collection.model])
-				_collection.model = app.models[_collection.model];
-			else 
-				_collection.model = require('ridge/model').extend({
-					name: _collection.model
-				});
-		}
-
-		return _collection;
+		return this;
 	},
 
 	parse: function(resp) {
