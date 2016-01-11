@@ -1,11 +1,35 @@
 module.exports = {
+	prop: function(property) {
+		var negate;
+		if(/^!/.test(property)) {
+			negate = true;
+			property = property.slice(1);
+		}
+		return function($el, value, previousValue) {
+			$el = $($el);
+
+			$el.prop(property, negate && !value || !negate && !!value);
+		};
+	},
+
+	booleanClass: function(setClass, unsetClass) {
+		return function($el, value, previousValue) {
+			$el = $($el);
+
+			$el.toggleClass(setClass, !!value).toggleClass(unsetClass, !value);
+		};
+	},
 	html: function($el, value, previousValue) {
+		$el = $($el);
+
 		$el.html(value);
 
 		$el.trigger('change', { internal: true });
 	},
 
 	value: function($el, value, previousValue) {
+		$el = $($el);
+
 		if($el[0].type === 'radio' || $el[0].type === 'checkbox') {
 			if($el.length === 1) {
 				$el.prop('checked', !!value);
@@ -27,12 +51,16 @@ module.exports = {
 	},
 
 	published: function($el, value) {
+		$el = $($el);
+
 		$el = $el.closest('[data-published]');
 
 		$el.attr('data-published', (!!value).toString());
 	},
 
 	parts: function($el, value) {
+		$el = $($el);
+
 		if(!_.isDate(value)) ref = new Date(value);
 
 		ref = ref.toLocaleString('se-SV').split(' ');
@@ -43,11 +71,16 @@ module.exports = {
 	},
 
 	src: function($el, value) {
+		$el = $($el);
+
 		$el.attr('src', value);
 	},
 
 	selectMultiple: function($el, value) {
+		$el = $($el);
+
 		if(!value) $el.val(null);
+
 		else
 			value.forEach(function(value) {
 				$el.find('[value="' + value + '"]').prop('selected', true);
