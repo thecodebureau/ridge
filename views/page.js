@@ -1,5 +1,4 @@
-var app = require('ridge'),
-	View = require('ridge/view');
+var View = require('ridge/view');
 
 module.exports = View.extend({
 	tagName: 'section',
