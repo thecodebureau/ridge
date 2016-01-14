@@ -112,14 +112,13 @@ module.exports = Router.extend({
 		// get router state or get state by fragment or get initial state
 		state = !opts.reload && states.get(this) ||
 			states.get(attrs) ||
-			opts.url && states.get(history.decodeFragment(opts.url + url.search));
+			states.get(history.decodeFragment((opts.url || url.path) + url.search));
 
 		if (state)
 			state.set(_.defaults(attrs, _.result(state, 'defaults')), opts);
 		else {
 			state = states.add(attrs, opts);
-			if (opts.url)
-				state.loading = state.fetch(opts);
+			state.loading = state.fetch(opts);
 		}
 
 		this.cid = state.cid;
