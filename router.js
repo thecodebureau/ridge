@@ -19,6 +19,7 @@ function parseQueryString(query) {
 			val = decodeURIComponent(key.slice(index + 1));
 			key = key.slice(0, index);
 		}
+		if (!key) return;
 
 		key = decodeURIComponent(key);
 
@@ -40,8 +41,8 @@ module.exports = Router.extend({
 	states: new Backbone.Collection(null, {
 		model: Backbone.Model.extend({
 			url: function() {
-				var id = this.get('id');
-				return id && encodeURI(id);
+				var path = this.get('path');
+				return path && path + (this.get('search') || '');
 			},
 
 			parse: function(resp) {
@@ -55,7 +56,7 @@ module.exports = Router.extend({
 
 	constructor: function(options) {
 		this.options = _.omit(options, 'routes');
-		Router.call(this, options);
+		Router.apply(this, arguments);
 	},
 
 	// creates router if given options object as argument
@@ -77,52 +78,83 @@ module.exports = Router.extend({
 	},
 
 	execute: function(callback, args) {
-		var query = args.pop(),
-			search = null;
+		var query = args.pop();
 
-		if (_.isString(query)) {
-			search = '?' + encodeURI(decodeURI(query));
+		if (_.isString(query))
 			query = parseQueryString(query);
-		}
-
-		this.params = _.extend({}, args);
-		if (Backbone.history._usePushState)
-			_.defaults(this.params, window.history.state);
-		this.query = query || {};
-		this.search = search;
 
 		args.push(query);
 
 		if (callback) callback.apply(this, args);
+
+		this.load(null, { query: query });
 	},
 
-	load: function(options) {
-		options = _.extend({ remove: false }, this.options, options);
-
+	// add and fetch new state or update existing state
+	load: function(fragment, attrs, opts) {
 		var states = this.states,
-			state = states.current,
+			state,
 			history = Backbone.history;
 
-		if (this.id == null || options.reload)
-			this.id = decodeURI(options.url || history.root + history.fragment);
-
-		// cancel current transition
-		if (state && state.loading) {
-			states.remove(state);
-			state.loading.abort();
+		if (fragment == null) {
+			fragment = history.fragment;
+			if (history._usePushState) state = window.history.state;
 		}
 
-		state = _.pick(this, 'id', 'params', 'query', 'search');
+		var url = this.url(fragment, null, { root: history.root });
 
-		var existing = states.get(state);
+		attrs = _.defaults(_.pick(url, 'path', 'search'), state, attrs);
+		attrs.id = fragment;
 
-		state = states.current = states.set(state, options);
+		opts = _.extend({}, this.options, opts);
+		opts.data = opts.url && url.query;
 
-		state.loading = (!existing || options.reload) && state.fetch(options)
-		.always(function() {
-			state.loading = false;
-		});
+		// get router state or get state by fragment or get initial state
+		state = !opts.reload && states.get(this) ||
+			states.get(attrs) ||
+			opts.url && states.get(history.decodeFragment(opts.url + url.search));
+
+		if (state)
+			state.set(_.defaults(attrs, _.result(state, 'defaults')), opts);
+		else {
+			state = states.add(attrs, opts);
+			if (opts.url)
+				state.loading = state.fetch(opts);
+		}
+
+		this.cid = state.cid;
 
 		return state;
 	},
+
+	// generate URL from decoded fragment
+	url: function(fragment, params, opts) {
+		fragment = (fragment || '').split('#');
+
+		opts = _.extend({}, this.options, opts);
+
+		var root = opts.root || '',
+			url = encodeURI(fragment[0]).replace(/%25/g, '%'),
+			path = url.replace(/\?.*/, ''),
+			search = url.slice(path.length),
+			query = search.slice(1);
+
+		if (params) {
+			// extend query string with params
+			query = parseQueryString(query);
+			query = $.param(_.extend(query, params), opts.traditional);
+			if (query)
+				search = '?' + query;
+		}
+
+		fragment[0] = '';
+
+		return {
+			// remove trailing slash on the root
+			path: !path && root.slice(0, -1) || root + path,
+			query: query,
+			search: search,
+			hash: fragment.join('#')
+		};
+	}
 });
