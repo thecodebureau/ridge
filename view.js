@@ -138,7 +138,7 @@ var View = Backbone.View.extend({
 	render: function() {
 		_.result(this, 'unobserve');
 
-		var data = _.extend({}, app.context, this.data, _.result(this.state, 'toJSON'), _.result(this.model, 'toJSON'));
+		var data = _.extend({}, app.context, _.result(this.state, 'toJSON'), this.data, _.result(this.model, 'toJSON'));
 
 		this.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
 
