@@ -1,5 +1,3 @@
-var app = require('ridge');
-
 var FormView = require('ridge/views/form-styling');
 
 module.exports = FormView.extend({
@@ -29,7 +27,7 @@ module.exports = FormView.extend({
 	},
 
 	attach: function(model, value) {
-		var query = this.state.get('query');
+		var query = this.state.get('query') || {};
 
 		_.each(this.$el.prop('elements'), function(elem) {
 			if (elem.name)
