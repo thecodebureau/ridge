@@ -10,7 +10,7 @@ module.exports = Backbone.Collection.extend({
 
 	parse: function(resp) {
 		if(_.isObject(resp)) {
-			this.totalCount = resp.totalCount;
+			_.extend(this, _.pick(resp, 'totalCount', 'perPage'));
 
 			return _.find(resp, _.isArray);
 		}
