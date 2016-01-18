@@ -202,7 +202,7 @@ var View = Backbone.View.extend({
 		while(subViews && subViews.length > 0) {
 			_.invoke(subViews, 'stopListening');
 
-			subViews = _.compact(_.flatten(_.pluck(subViews, 'views')));
+			subViews = _.compact(_.flatten(_.map(subViews, 'views')));
 		}
 
 		this.$el.leave(options);

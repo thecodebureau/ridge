@@ -5,7 +5,7 @@ var _tests = require('../util/validate/tests'),
 // validator functions in the validators array
 // enable string formatting like in console log, ie console.log('I like to %s a lot', 'poop') > "I like to poop alot"
 function format(str) {
-	var args = _.rest(arguments);
+	var args = _.tail(arguments);
 
 	return !args.length ? str : str.replace(/%[a-zA-Z]/, function(match) {
 		return args.shift() || match;

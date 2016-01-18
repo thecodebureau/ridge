@@ -55,8 +55,8 @@ function parseSetters(setters) {
 			var arr = setter.split(':');
 
 			setter = {
-				type: _.first(arr),
-				options: _.rest(arr)
+				type: _.head(arr),
+				options: _.tail(arr)
 			};
 		}
 

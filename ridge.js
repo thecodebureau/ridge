@@ -90,8 +90,6 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 
 		var PageView = options && options.view;
 
-		if (!_.isFunction(PageView)) PageView = app.views[PageView || 'Page'];
-
 		var page = new PageView(options);
 
 		if(!page.el.parentNode)
