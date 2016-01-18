@@ -37,6 +37,9 @@ module.exports = Backbone.Model.extend({
 			(attrs = {})[key] = val;
 		}
 
+		if(options.flatten)
+			attrs = flatten(attrs);
+
 		options || (options = {});
 
 		// Run validation.
