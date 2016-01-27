@@ -34,10 +34,18 @@ function minlength(number) {
 	return fnc;
 }
 
+function truthy(value) {
+	return !!value;
+}
+
+truthy._name = 'truthy';
+
 function required(value) {
 	if(/^</.test(value))
+		/* if HTML string, test if tags contain any text */
 		return value.split(/<.*?>/).join('').trim();
 	else 
+		/* if not HTML string, test if truthy, is boolean or equals 0 */
 		return !!value || _.isBoolean(value) || value === 0;
 }
 
@@ -88,5 +96,6 @@ module.exports = {
 	minlength: minlength,
 	number: number,
 	required: required,
+	truthy: truthy,
 	timeString: timeString
 };

@@ -1,5 +1,5 @@
-var _tests = require('../util/validate/tests'),
-	_messages = require('../util/validate/messages');
+var _tests = require('../util/tests'),
+	_messages = require('../util/test-messages');
 
 // returns a checker function which runs all
 // validator functions in the validators array
@@ -98,5 +98,3 @@ module.exports = {
 		return _.isEmpty(errors);
 	}
 };
-
-
