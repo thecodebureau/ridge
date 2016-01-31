@@ -76,6 +76,12 @@ module.exports = {
 			// TODO does not handle testing a.b.c if a.b is set (which should probably fail)
 			attrs = _.pick(attrs, _.keys(this.validation));
 		} else {
+			options = options || {};
+
+			// this is to let form-styling view know to focus errored first element.
+			// See line 92 in views/form-styling
+			options.validateAll = true;
+
 			attrs = _.mapValues(this.validation, function(value, key) {
 				return self.get(key);
 			});
