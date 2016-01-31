@@ -37,10 +37,10 @@ module.exports = Backbone.Model.extend({
 			(attrs = {})[key] = val;
 		}
 
+		options || (options = {});
+
 		if(options.flatten)
 			attrs = flatten(attrs);
-
-		options || (options = {});
 
 		// Run validation.
 		if (!this._validate(attrs, options)) return false;
