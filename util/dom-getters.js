@@ -5,33 +5,32 @@ function html(el) {
 
 html.events = [ 'blur', 'input', 'change' ];
 
+// NOTE important to pass jQuery object here, since it can radio or checkbox
+// list
 function value(el) {
-	var $el = $(el);
+	if((/radio|checkbox/i).test(el.type)) {
+		// if the radio/checkbox has a form and a name, try get all others
+		// with the same name. TODO impl
+		if(el.name && el.form)
+			el = el.form[el.name];
 
-	if($el.length === 1) {
-		if((/checkbox/i).test($el[0].type))
-			return $el.is(':checked');
+		// 'length' property exists only if el is a NodeList, ie there are
+		// multiple checkboxes/radios
+		if('length' in el) {
+			if((/radio/i).test(el[0].type))
+				return _.result(_.findWhere(el, { checked: true }), 'value');
 
-		var val = $el.val();
-
-		if(val === 'on' || val === 'true') val = true;
-		else if(val === 'undefined') val = undefined;
-
-		return val;
-	} else {
-		if((/radio/i).test($el[0].type)) {
-			return $el.filter(':checked').val();
-		} else {
-			if((/checkbox/i).test($el[0].type))
-				$el = $el.filter(':checked');
-		
-			var arr = $el.toArray().map(function(element) {
-				return $(element).val();
+			var arr = _.filter(el, 'checked').map(function(element) {
+				return element.value;
 			});
 
 			return arr.length > 0 ? arr : null;
 		}
+
+		return el.checked;
 	}
+
+	return el.value;
 }
 	
 value.events = [ 'blur', 'change', 'input' ];
