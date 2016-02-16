@@ -67,7 +67,13 @@ function createViews() {
 		if(!Subview) return;
 
 		if(!subview.multi) {
-			subview.el = self.$(subview.el);
+			// passing of falsy subview.el uses parent elements element, ie one
+			// element gets more than one view
+			subview.el = subview.el ? self.$(subview.el) : $(self.el);
+
+			if(subview.el.length === 0)
+				return;
+
 			return (self[name] = new Subview(subview));
 		}
 
