@@ -79,15 +79,18 @@ function parseSetters(setters) {
 function parseBindings(bindings, key) {
 	var self = this;
 
+	// handle super short style, ie 'email': '[name="email"]'
 	if(_.isString(bindings)) {
 		var selector = bindings;
 
+		// short style defaults to 'text' setter
 		(bindings = {})[selector] = { set: 'text' };
 	}
 
 	return _.map(bindings, function(binding, selector) {
 		var get, set = [];
-
+		
+		// handle short style, ie '[name="email"]': 'value'
 		if(_.isString(binding)) {
 			set.push(binding);
 		} else {
@@ -101,7 +104,7 @@ function parseBindings(bindings, key) {
 				set.push(binding.set);
 		}
 
-		var domGetter = domGetters[get],
+		var domGetter = _.isFunction(get) ? get : domGetters[get],
 			getter;
 
 		if(domGetter) {
