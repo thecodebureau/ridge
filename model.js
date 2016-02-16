@@ -32,7 +32,10 @@ module.exports = Backbone.Model.extend({
 		var attrs;
 		if (typeof key === 'object') {
 			attrs = key;
-			options = val;
+
+			// fix so one can pass attrs object to unset
+			if(typeof options !== 'object')
+				options = val;
 		} else {
 			(attrs = {})[key] = val;
 		}
@@ -103,11 +106,18 @@ module.exports = Backbone.Model.extend({
 	},
 
 
+	// reset a model to latest synced state, or to default values
+	// if model has not been persisted to server
 	reset: function(options) {
+		// TODO copy back victors version, stop emitting reset event and update set to remove properties if { unset: true }
+		options = _.extend({ reset: true }, options);
+
 		var set = flatten(this.originalAttributes),
 			unset = _.omit(flatten(this.attributes), _.keys(set));
 
-		var result = this.unset(unset, options) && this.set(set, options);
+		var result = this.unset(unset, options);
+		
+		result = this.set(set, options);
 
 		if(result && !(options && options.silent))
 			this.trigger('reset');
