@@ -19,10 +19,19 @@ module.exports = {
 			$el.toggleClass(setClass, !!value).toggleClass(unsetClass, !value);
 		};
 	},
+
 	html: function($el, value, previousValue) {
 		$el = $($el);
 
 		$el.html(value);
+
+		$el.trigger('change', { internal: true });
+	},
+
+	text: function($el, value, previousValue) {
+		$el = $($el);
+
+		$el.text(value);
 
 		$el.trigger('change', { internal: true });
 	},

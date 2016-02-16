@@ -1,3 +1,8 @@
+function text(el) {
+	return $(el).text(value);
+}
+
+text.events = [ 'blur', 'input', 'change' ];
 
 function html(el) {
 	return $(el).html();
@@ -50,6 +55,8 @@ function parts(el) {
 parts.events = [ 'input', 'change', 'blur' ];
 
 module.exports = {
+	text: text,
+
 	html: html,
 
 	value: value,
