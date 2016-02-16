@@ -3,7 +3,6 @@ var app = require('../ridge');
 var View = require('../view').extend();
 
 _.extend(View.prototype, {
-//_.extend(View.prototype, require('../mixins/observe'), {
 	tagName: 'form',
 
 	events: {
@@ -19,6 +18,10 @@ _.extend(View.prototype, {
 	initialize: function(opts) {
 		this.listenTo(this.model, 'validated', this.setValid);
 		this.listenTo(this.model, 'reset', this.reset);
+
+		// TODO maybe turn this off, and use this.el.reset() in 'reset' method to
+		// ensure form is properly reset.
+		this.$el.on('reset', this.reset.bind(this));
 	},
 
 	attach: function() {
@@ -46,7 +49,10 @@ _.extend(View.prototype, {
 	reset: function() {
 		this.$('[name], [data-name], .container').removeClass('valid invalid touched validated filled empty');
 		this.$('label.error').remove();
-		this.attach();
+
+		// needed when reset is called by 'form' reset event,
+		// otherwise form values are not cleared before reattached
+		setTimeout(this.attach.bind(this));
 	},
 
 	onHover: function() {
@@ -59,7 +65,7 @@ _.extend(View.prototype, {
 
 	onChange: function(e) {
 		var target = e.currentTarget,
-			value = target.nodeName === 'DIV' ? target.textContent.trim() : target.value;
+			value = target.nodeName === 'DIV' ? target.textContent.trim() : /radio|checkbox/.test(target.type) ? target.checked : target.value;
 
 		$(target).closest('div.container', this.el).toggleClass('empty', !value).toggleClass('filled', !!value);
 	},
