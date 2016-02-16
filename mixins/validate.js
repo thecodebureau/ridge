@@ -32,11 +32,20 @@ function setupValidation(validation, attr, model) {
 	_.each(validation, function(options, testName) {
 		if(!options) return;
 
-		options = options || {};
+		if(!_.isPlainObject(options)) {
+			if(_.isString(options))
+				// if options is string, we assume it is an error message
+				options = { message: options };
+			else if(_.isBoolean(options))
+				// if options === true, set empty options object
+				options = {};
+			else
+				options = { option: options };
+		}
 
 		if(_tests[testName]) {
 			var fnc = options.option ? _tests[testName](options.option) : _tests[testName],
-				message = _.isString(options) ? options : options.message || _messages[fnc._name];
+				message = options.message || _messages[fnc._name];
 
 			tests[testName === 'required' ? 'unshift' : 'push']({
 				message: format.apply(null, [ message ].concat(fnc._parameters)),
@@ -102,5 +111,20 @@ module.exports = {
 		this.trigger('validated', this, errors, valid, options);
 
 		return _.isEmpty(errors);
+	},
+
+	// returns validation 
+	getBindings: function(type) {
+		type = type || 'value';
+
+		return _.mapValues(this.validation, function(value, key) {
+			var binding = {};
+
+			binding['[name="' + key + '"],[data-name="' + key + '"]'] = {
+				both: type,
+			};
+
+			return binding;
+		});
 	}
 };
