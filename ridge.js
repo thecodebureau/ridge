@@ -92,7 +92,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 
 		var page = new PageView(options);
 
-		if(!page.el.parentNode)
+		if(!(page.el.parentNode instanceof Element))
 			app.switchPage(page, options);
 		else
 			app.currentPage = page;
