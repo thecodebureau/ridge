@@ -6,8 +6,8 @@ var domSetters = require('ridge/util/dom-setters');
  * events are triggered.  It uses the bindings setter to place the value from
  * the model into the DOM.
  */
-function makeSetter(setters, selector) {
-	setters = parseSetters(setters);
+function makeSetter(setters, selector, view) {
+	setters = parseSetters(setters, view);
 
 	return setters.length < 1 ? undefined : function(model, value, data) {
 		if(data && data.internal) return;
@@ -47,9 +47,9 @@ function makeGetter(fnc, key) {
 /*
  * Creates a set plain object from a ':' seperated string
  */
-function parseSetters(setters) {
+function parseSetters(setters, view) {
 	return _.compact(_.map(setters, function(setter) {
-		if(_.isFunction(setter)) return setter;
+		if(_.isFunction(setter)) return setter.bind(view);
 
 		if(_.isString(setter)) {
 			var arr = setter.split(':');
@@ -65,7 +65,7 @@ function parseSetters(setters) {
 		if(fnc && setter.options.length > 0)
 			fnc = fnc.apply(null, _.isArray(setter.options) ? setter.options : [ setter.options ]);
 
-		return fnc;
+		return fnc.bind(view);
 	}));
 }
 
@@ -79,7 +79,7 @@ function parseSetters(setters) {
 function parseBindings(bindings, key) {
 	var self = this;
 
-	// handle super short style, ie 'email': '[name="email"]'
+	// handle super short style, ie 'email': '.email'
 	if(_.isString(bindings)) {
 		var selector = bindings;
 
@@ -91,7 +91,7 @@ function parseBindings(bindings, key) {
 		var get, set = [];
 		
 		// handle short style, ie '[name="email"]': 'value'
-		if(_.isString(binding)) {
+		if(_.isString(binding) || _.isFunction(binding)) {
 			set.push(binding);
 		} else {
 			if(binding.both) {
@@ -117,7 +117,7 @@ function parseBindings(bindings, key) {
 			selector: selector,
 			//getter: getter ? getter.bind(self) : undefined,
 			getter: getter,
-			setter: makeSetter(set, selector)
+			setter: makeSetter(set, selector, self)
 		};
 	});
 }
@@ -165,7 +165,7 @@ module.exports = {
 		var self = this;
 
 		this._bindings.forEach(function(binding) {
-			binding.setter.call(self, null, self.model.get(binding.key));
+			binding.setter && binding.setter.call(self, null, self.model.get(binding.key));
 		});
 	},
 };
