@@ -100,9 +100,9 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 
 	switchPage: function(page, options) {
 		if(app.currentPage)
-			app.currentPage.leave(options);
-
-		app.currentPage = page.enter(app.elements.main, options);
+			app.currentPage.remove();
+		
+		(app.currentPage = page).$el.appendTo(app.elements.main);
 	},
 
 	remember: function(state) {
