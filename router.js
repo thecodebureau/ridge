@@ -77,6 +77,12 @@ module.exports = Router.extend({
 		return route.call(router, path, name, callback);
 	},
 
+	navigate: function(fragment, options) {
+		this.states.pending = options;
+		Backbone.history.navigate(url.path + url.search + url.hash, options);
+		return this;
+	},
+
 	execute: function(callback, args) {
 		var query = args.pop();
 
@@ -87,7 +93,11 @@ module.exports = Router.extend({
 
 		if (callback) callback.apply(this, args);
 
-		this.load(null, { query: query });
+		var states = this.states,
+			options = states.pending;
+		states.pending = false;
+		var state = this.load(null, { query: query }, options);
+		this.transitionTo(state, options);
 	},
 
 	// add and fetch new state or update existing state
@@ -101,12 +111,13 @@ module.exports = Router.extend({
 			if (history._usePushState) state = window.history.state;
 		}
 
-		var url = this.url(fragment, null, { root: history.root });
+		var url = this.url(fragment, { root: history.root });
 
 		attrs = _.defaults(_.pick(url, 'path', 'search'), state, attrs);
 		attrs.id = fragment;
 
 		opts = _.extend({}, this.options, opts);
+		// make sure data passed to fetch is either empty or set to query
 		opts.data = opts.url && url.query;
 
 		// get router state or get state by fragment or get initial state
@@ -121,13 +132,47 @@ module.exports = Router.extend({
 			state.loading = state.fetch(opts);
 		}
 
-		this.cid = state.cid;
-
 		return state;
 	},
 
+	transitionTo: function(state, opts) {
+		// save state on router
+		this.cid = state.cid;
+
+		var states = this.states,
+			previous = states.current;
+
+		states.current = state;
+
+		if (state !== previous) {
+			if (previous && !previous.loading)
+				previous.trigger('leave', opts);
+
+			opts = _.extend({}, this.options, opts);
+
+			state.loading = state.loading || true;
+
+			setTimeout(enter, 0);
+		}
+
+		function enter() {
+			var loading = state.loading;
+			if (state === states.current && loading) {
+				if (loading === true) {
+					state.loading = false;
+					state.trigger('enter', opts);
+				} else {
+					loading.done(function() {
+						state.loading = true;
+						enter();
+					});
+				}
+			}
+		}
+	},
+
 	// generate URL from decoded fragment
-	url: function(fragment, params, opts) {
+	url: function(fragment, opts) {
 		fragment = (fragment || '').split('#');
 
 		opts = _.extend({}, this.options, opts);
@@ -135,23 +180,14 @@ module.exports = Router.extend({
 		var root = opts.root || '',
 			url = encodeURI(fragment[0]).replace(/%25/g, '%'),
 			path = url.replace(/\?.*/, ''),
-			search = url.slice(path.length),
-			query = search.slice(1);
-
-		if (params) {
-			// extend query string with params
-			query = parseQueryString(query);
-			query = $.param(_.extend(query, params), opts.traditional);
-			if (query)
-				search = '?' + query;
-		}
+			search = url.slice(path.length);
 
 		fragment[0] = '';
 
 		return {
 			// remove trailing slash on the root
 			path: !path && root.slice(0, -1) || root + path,
-			query: query,
+			query: search.slice(1),
 			search: search,
 			hash: fragment.join('#')
 		};
