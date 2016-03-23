@@ -18,7 +18,7 @@ module.exports = {
 	},
 
 	login: function(user, loadUrl) {
-		this.user = new this.models.User(user);
+		this.user = new Backbone.Model(user);
 
 		if(this.loginForm && this.toggleLoginForm) {
 			this.toggleLoginForm();

@@ -1,52 +1,108 @@
+var Model = require('ridge/model').extend();
+
+_.extend(Model.prototype, require('ridge/mixins/validate'), {
+	urlRoot: '/auth/local',
+
+	validation: {
+		email: {
+			email: true,
+			required: true
+		},
+		password: {
+			required: true
+		}
+	}
+});
+
+var MessageView = require('ridge/views/message');
+var FormView = require('ridge/views/form-styling');
+
 var app = require('ridge');
 
-module.exports = require('ridge/view').extend({
+var View = require('ridge/view').extend();
+
+_.extend(View.prototype, require('ridge/mixins/observe'), {
+	template: 'partials/login-form',
+
 	events: {
-		'click a.external': 'externalLogin'
+		'click a.external': 'externalLogin',
+		'click .close': 'close',
+		'submit form': 'save'
+	},
+
+	subviews: {
+		form: [ 'form', FormView ]
+	},
+
+	elements: {
+		button: 'button',
+		form: 'form'
 	},
 
 	initialize: function(opts) {
 		if(opts && opts.removeOnLogin)
 			this.listenTo(app, 'login', this.remove);
 
-		this.model = new app.models.LoginUser();
-	},
+		this.model = opts && opts.model || new Model();
 
-	attach: function() {
-		var _view = this;
+		this.bindings = _.mapValues(this.model.validation, function(value, key) {
+			var binding = {};
 
-		if(this.formView) this.formView.remove();
+			binding['[name="' + key + '"],[data-name="' + key + '"]'] = {
+				both: 'value',
+			};
 
-		this.formView = new app.views.Form({
-			el: this.$('form'),
-
-			model: this.model,
-
-			onError: function(model, xhr, options) {
-				var _form = this,
-					err = xhr.responseJSON;
-
-				if(_form.message)
-					_form.message.leave({ animateHeight: true });
-
-				_form.message = new app.views.Message({
-					message: { 
-						type: 'error',
-						heading: err.statusText,
-						body: err.message
-					}
-				}).enter(_form.el, { method: 'prepend', animateHeight: true });
-			},
-
-			onSuccess: function(model, resp, options) {
-				model.reset({ silent: true });
-
-				app.login(resp, options.xhr.getResponseHeader('location'));
-			},
+			return binding;
 		});
 	},
 
-	template: 'partials/login-form',
+	error: function(model, xhr, options) {
+		_.result(this.message, 'remove');
+
+		var resp = xhr.responseJSON;
+
+		this.message = new MessageView({
+			message: { 
+				type: 'error',
+				heading: resp.statusText,
+				body: resp.message
+			}
+		}).enter(this.elements.form, { method: 'prepend' });
+	},
+
+	save: function(e) {
+		e.preventDefault();
+
+		if(this.model.isValid()) {
+			$(document.body).addClass('progress');
+
+			this.elements.button.prop('disabled', true);
+
+			this.model.save(null, {
+				error: this.error,
+				success: this.success,
+				complete: this.complete,
+				context: this,
+				validate: false
+			});
+		}
+	},
+
+	complete: function() {
+		this.elements.button.prop('disabled', false);
+
+		$(document.body).removeClass('progress');
+	},
+
+	success: function(model, resp, options) {
+		model.reset({ silent: true });
+
+		app.login(resp, options.xhr.getResponseHeader('location'));
+	},
+
+	attach: function() {
+		this.observe({ validate: true });
+	},
 
 	externalLogin: function(e) {
 		e.preventDefault();
@@ -78,3 +134,5 @@ module.exports = require('ridge/view').extend({
 		});
 	}
 });
+
+module.exports = View;
