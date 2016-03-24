@@ -39,7 +39,7 @@ module.exports = {
 				Backbone.history.loadUrl(loadUrl);
 		}
 
-		this.trigger('login');
+		this.trigger('login', this.user);
 	},
 
 	logout: function(e) {
