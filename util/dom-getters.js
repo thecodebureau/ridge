@@ -23,7 +23,7 @@ function value(el) {
 		// multiple checkboxes/radios
 		if('length' in el) {
 			if((/radio/i).test(el[0].type))
-				return _.result(_.findWhere(el, { checked: true }), 'value');
+				return _.result(_.find(el, { checked: true }), 'value');
 
 			var arr = _.filter(el, 'checked').map(function(element) {
 				return element.value;

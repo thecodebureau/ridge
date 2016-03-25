@@ -132,7 +132,7 @@ module.exports = {
 
 		this.model.observeOptions = opts = _.defaults({ internal: true }, opts);
 
-		this._bindings = _.chain(this.bindings).map(parseBindings, this).flatten().map(function(binding) {
+		this._bindings = _.chain(this.bindings).map(parseBindings.bind(this)).flatten().map(function(binding) {
 			if(binding.setter) 
 				self.listenTo(self.model, 'change:' + binding.key, binding.setter);
 

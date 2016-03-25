@@ -53,7 +53,7 @@ function updateElement(html, tag, endTag, tagName) {
 	this.rendered = true;
 
 	// remove old subviews
-	_.invoke(this.views, 'remove');
+	_.invokeMap(this.views, 'remove');
 }
 
 function createViews() {
@@ -206,7 +206,7 @@ var View = Backbone.View.extend({
 		var subViews = this.views;
 
 		while(subViews && subViews.length > 0) {
-			_.invoke(subViews, 'stopListening');
+			_.invokeMap(subViews, 'stopListening');
 
 			subViews = _.compact(_.flatten(_.map(subViews, 'views')));
 		}
