@@ -148,7 +148,7 @@ module.exports = Router.extend({
 			if (previous && !previous.loading)
 				previous.trigger('leave', opts);
 
-			opts = _.extend({}, this.options, opts);
+			opts = _.extend({ state: state, router: this }, this.options, opts);
 
 			state.loading = state.loading || true;
 

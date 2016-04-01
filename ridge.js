@@ -46,12 +46,14 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		app.elements = { main: $('main') };
 
 		app.router = new Router({
-			routes: this.routes
+			routes: this.routes,
+			reload: true
 		});
 
 		app.router.states.reset(options.states, { parse: true });
 
-		Backbone.history.on('route', app.onRoute);
+		app.router.states.on('enter', app.createPage);
+		app.router.states.pending = options;
 
 		Backbone.history.start(options);
 
@@ -62,32 +64,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		Backbone.View.call(app);
 	},
 
-	onRoute: function(router, name) {
-		var previous = router.states.current,
-			state = router.load();
-
-		if (previous && state === previous) return;
-
-		var options = _.extend({
-			state: state,
-			router: router,
-			name: name
-		}, router.options);
-
-		var done = app.createPage.bind(this, options);
-
-		if (state.loading)
-			state.loading.done(done);
-		else
-			done();
-	},
-
 	createPage: function(options) {
-		var $el;
-
-		if(!app.currentPage && ($el = app.elements.main.children()).length) 
-			options.el = $el;
-
 		var PageView = options && options.view;
 
 		var page = new PageView(options);
