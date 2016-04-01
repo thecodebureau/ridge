@@ -1,12 +1,10 @@
-require('./util/jquery-animate');
-
 /* Base view */
 
-var dust = require('dustjs-linkedin'),
-	app = require('./ridge'),
-	Promise = require('./util/promise'),
-	tagPattern = /<(\w+)[^>]*>/,
-	attrPattern = /\s+(\S+)\s*=\s*("[^"]*"|'[^']*')/g;
+//var dust = require('dustjs-linkedin'),
+var app = require('./ridge');
+var Promise = require('./util/promise');
+var tagPattern = /<(\w+)[^>]*>/;
+var attrPattern = /\s+(\S+)\s*=\s*("[^"]*"|'[^']*')/g;
 
 
 /* Extract wrapping element, attributes and contents */
@@ -154,19 +152,21 @@ var View = Backbone.View.extend({
 	// Render Dust template and update element, using the fx queue
 
 	renderTemplate: function(data) {
-		var templateName = this.template,
-			rendering = this.Promise(function(resolve, reject) {
+		var template = this.template;
+
+		var rendering = this.Promise(function(resolve, reject) {
 			this.$el.queue(function(next, hooks) {
 				// hooks.stop() is called if queue is stopped using $el.stop() or $el.finish()
 				hooks.stop = function() {
 					reject();
 				};
-
-				dust.render(templateName, data || {}, function(err, out) {
+ 
+	//var page = $(options.template.renderSync(context))[0];
+				template.render(data || {}, function(err, html) {
 					if (err)
 						reject(err);
 					else
-						parseElement(out, resolve);
+						parseElement(html, resolve);
 				});
 			});
 		}).done(updateElement, this._attach, function() { this.$el.dequeue(); })

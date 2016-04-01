@@ -1,16 +1,6 @@
-require('./util/dust-mod');
-
-var dust = require('dustjs-linkedin');
-
 var Router = require('./router');
 
 var app = module.exports = _.create(Backbone.View.prototype, {
-	dust: dust,
-
-	helpers: dust.helpers,
-
-	filters: dust.filters,
-
 	el: document.documentElement,
 
 	events: {

@@ -1,6 +1,6 @@
-var dust = require('dustjs-linkedin'),
-	Router = Backbone.Router,
-	route = Router.prototype.route;
+//var dust = require('dustjs-linkedin');
+var Router = Backbone.Router;
+var route = Router.prototype.route;
 
 // Parse query string into an object.
 // Understands array values serialized by jQuery.param() without nesting.
@@ -46,7 +46,7 @@ module.exports = Router.extend({
 
 			parse: function(resp) {
 				// load templates here so they are ready before any change event is triggered
-				_.each(resp && resp.compiled, dust.loadSource);
+				//_.each(resp && resp.compiled, dust.loadSource);
 
 				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled', 'navigation', 'site');
 			}
