@@ -129,7 +129,8 @@ module.exports = Router.extend({
 			state.set(_.defaults(attrs, _.result(state, 'defaults')), opts);
 		else {
 			state = states.add(attrs, opts);
-			state.loading = state.fetch(opts);
+			if (opts.fetch !== false)
+				state.loading = state.fetch(opts);
 		}
 
 		return state;
