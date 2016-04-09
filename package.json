@@ -23,10 +23,5 @@
   "bugs": {
     "url": "https://github.com/thecodebureau/ridge/issues"
   },
-  "homepage": "https://github.com/thecodebureau/ridge",
-  "dependencies": {
-  },
-  "peerDependencies": {
-    "dustjs-linkedin": "^2.7.2"
-  }
+  "homepage": "https://github.com/thecodebureau/ridge"
 }
