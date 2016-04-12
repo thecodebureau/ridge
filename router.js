@@ -77,9 +77,16 @@ module.exports = Router.extend({
 		return route.call(router, path, name, callback);
 	},
 
+	// update the URL by appending fragment to this.options.root
 	navigate: function(fragment, options) {
+		var url = this.url(fragment);
+
+		if (options === true) options = { trigger: true };
+
 		this.states.pending = options;
-		Backbone.history.navigate(url.path + url.search + url.hash, options);
+		// ignoring url.hash for now
+		Backbone.history.navigate(url.path + url.search, options);
+		this.states.pending = false;
 		return this;
 	},
 

@@ -26,7 +26,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			if (href.slice(0, index) + '/' == root) {
 				e.preventDefault();
 				// navigate to URL fragment without the root
-				Backbone.history.navigate(href.slice(index).replace(/^#/, '/#'), { trigger: true });
+				app.router.navigate(href.slice(index), { trigger: true });
 			}
 		}
 	},
