@@ -36,6 +36,11 @@ function makeGetter(fnc, key) {
 
 		var value = fnc(el);
 
+    /* do not set value if we are extracting and no value has been set in DOM
+     * element
+     */
+    if(!value && data && data.extract) return;
+
 		// TODO... should probably unset here
 		if(!value && !_.isBoolean(value) && value !== 0) value = null;
 
@@ -168,7 +173,7 @@ module.exports = {
 		var self = this;
 
 		this._bindings.forEach(function(binding) {
-			binding.getter && self.$(binding.selector).trigger(binding.getter.events[0]);
+			binding.getter && self.$(binding.selector).trigger(binding.getter.events[0], { extract: true });
 			//binding.getter && binding.setter.call(self, null, self.model.get(binding.key));
 		});
 	},
