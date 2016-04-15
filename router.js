@@ -19,6 +19,7 @@ function parseQueryString(query) {
 			val = decodeURIComponent(key.slice(index + 1));
 			key = key.slice(0, index);
 		}
+		if (!key) return;
 
 		key = decodeURIComponent(key);
 
@@ -40,8 +41,8 @@ module.exports = Router.extend({
 	states: new Backbone.Collection(null, {
 		model: Backbone.Model.extend({
 			url: function() {
-				var id = this.get('id');
-				return id && encodeURI(id);
+				var path = this.get('path');
+				return path && path + (this.get('search') || '');
 			},
 
 			parse: function(resp) {
@@ -53,15 +54,15 @@ module.exports = Router.extend({
 		})
 	}),
 
-	initialize: function(options, routes) {
+	constructor: function(options) {
 		this.options = _.omit(options, 'routes');
-		this.routes = routes;
+		Router.apply(this, arguments);
 	},
 
 	// creates router if given options object as argument
 	route: function(path, name, callback) {
 		var router = this,
-			root = router.root;
+			root = router.options.root;
 
 		if (_.isString(path)) {
 			if (root) path = root + path;
@@ -70,62 +71,133 @@ module.exports = Router.extend({
 
 		if (name && typeof name == 'object') {
 			router = name instanceof Router ? name :
-				new this.constructor(_.defaults({ routes: null }, name), name.routes);
-			router.root = root;
-			router._bindRoutes();
-			delete router.routes;
+				new this.constructor(_.extend({ root: root }, name));
 			name = '';
 		}
 		return route.call(router, path, name, callback);
 	},
 
+	// update the URL by appending fragment to this.options.root
+	navigate: function(fragment, options) {
+		var url = this.url(fragment);
+
+		if (options === true) options = { trigger: true };
+
+		this.states.pending = options;
+		// ignoring url.hash for now
+		Backbone.history.navigate(url.path + url.search, options);
+		this.states.pending = false;
+		return this;
+	},
+
 	execute: function(callback, args) {
-		var query = args.pop(),
-			search = null;
+		var query = args.pop();
 
-		if (_.isString(query)) {
-			search = '?' + encodeURI(decodeURI(query));
+		if (_.isString(query))
 			query = parseQueryString(query);
-		}
-
-		this.params = _.extend({}, args);
-		if (Backbone.history._usePushState)
-			_.defaults(this.params, window.history.state);
-		this.query = query || {};
-		this.search = search;
 
 		args.push(query);
 
 		if (callback) callback.apply(this, args);
-	},
-
-	load: function(options) {
-		options = _.extend({ remove: false }, this.options, options);
 
 		var states = this.states,
-			state = states.current,
+			options = states.pending;
+		states.pending = false;
+		var state = this.load(null, { query: query }, options);
+		this.transitionTo(state, options);
+	},
+
+	// add and fetch new state or update existing state
+	load: function(fragment, attrs, opts) {
+		var states = this.states,
+			state,
 			history = Backbone.history;
 
-		if (this.id == null || options.reload)
-			this.id = decodeURI(options.url || history.root + history.fragment);
-
-		// cancel current transition
-		if (state && state.loading) {
-			states.remove(state);
-			state.loading.abort();
+		if (fragment == null) {
+			fragment = history.fragment;
+			if (history._usePushState) state = window.history.state;
 		}
 
-		state = _.pick(this, 'id', 'params', 'query', 'search');
+		var url = this.url(fragment, { root: history.root });
 
-		var existing = states.get(state);
+		attrs = _.defaults(_.pick(url, 'path', 'search'), state, attrs);
+		attrs.id = fragment;
 
-		state = states.current = states.set(state, options);
+		opts = _.extend({}, this.options, opts);
+		// make sure data passed to fetch is either empty or set to query
+		opts.data = opts.url && url.query;
 
-		state.loading = (!existing || options.reload) && state.fetch(options)
-		.always(function() {
-			state.loading = false;
-		});
+		// get router state or get state by fragment or get initial state
+		state = !opts.reload && states.get(this) ||
+			states.get(attrs) ||
+			states.get(history.decodeFragment((opts.url || url.path) + url.search));
+
+		if (state)
+			state.set(_.defaults(attrs, _.result(state, 'defaults')), opts);
+		else {
+			state = states.add(attrs, opts);
+			if (opts.fetch !== false)
+				state.loading = state.fetch(opts);
+		}
 
 		return state;
 	},
+
+	transitionTo: function(state, opts) {
+		// save state on router
+		this.cid = state.cid;
+
+		var states = this.states,
+			previous = states.current;
+
+		states.current = state;
+
+		if (state !== previous) {
+			if (previous && !previous.loading)
+				previous.trigger('leave', opts);
+
+			opts = _.extend({ state: state, router: this }, this.options, opts);
+
+			state.loading = state.loading || true;
+
+			setTimeout(enter, 0);
+		}
+
+		function enter() {
+			var loading = state.loading;
+			if (state === states.current && loading) {
+				if (loading === true) {
+					state.loading = false;
+					state.trigger('enter', opts);
+				} else {
+					loading.done(function() {
+						state.loading = true;
+						enter();
+					});
+				}
+			}
+		}
+	},
+
+	// generate URL from decoded fragment
+	url: function(fragment, opts) {
+		fragment = (fragment || '').split('#');
+
+		opts = _.extend({}, this.options, opts);
+
+		var root = opts.root || '',
+			url = encodeURI(fragment[0]).replace(/%25/g, '%'),
+			path = url.replace(/\?.*/, ''),
+			search = url.slice(path.length);
+
+		fragment[0] = '';
+
+		return {
+			// remove trailing slash on the root
+			path: !path && root.slice(0, -1) || root + path,
+			query: search.slice(1),
+			search: search,
+			hash: fragment.join('#')
+		};
+	}
 });
