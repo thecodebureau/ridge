@@ -25,6 +25,12 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			// if the URL matches the root
 			if (href.slice(0, index) + '/' == root) {
 				e.preventDefault();
+
+        if(window.history.scrollRestoration === 'manual')
+          window.history.replaceState(_.extend({}, window.history.state, {
+            pageYOffset: window.pageYOffset
+          }), document.title);
+
 				// navigate to URL fragment without the root
 				app.router.navigate(href.slice(index), { trigger: true });
 			}
@@ -58,8 +64,8 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		Backbone.history.start(options);
 
 		// prevent scrolling on popState with { scrollRestoration: 'manual' }
-		if(window.history.scrollRestoration)
-			_.extend(window.history, _.pick(options, 'scrollRestoration'));
+    if(options.scrollRestoration)
+      window.history.scrollRestoration = options.scrollRestoration;
 
 		Backbone.View.call(app);
 	},
