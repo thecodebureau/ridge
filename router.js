@@ -48,18 +48,25 @@ module.exports = Router.extend({
 				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled', 'navigation', 'site');
 			},
 
+			// make this the active state.
+			// triggers enter event if state was inactive
 			enter: function(opts) {
-				if (this.loading) {
-					this.loading = false;
+				if (!this.active) {
+					this.active = true;
 					this.trigger('enter', opts);
 				}
 			},
 
+			// make this state inactive.
+			// triggers leave event if state was active
 			leave: function(opts) {
 				if (this.loading === true)
 					this.loading = false;
-				else if (!this.loading)
+
+				if (this.active) {
+					this.active = false;
 					this.trigger('leave', opts);
+				}
 			}
 		})
 	}),
@@ -110,10 +117,16 @@ module.exports = Router.extend({
 
 		if (callback) callback.apply(this, args);
 
+		// get options from states.pending.
+		// allows us to get options passed to navigate
 		var states = this.states,
 			options = states.pending;
 		states.pending = false;
-		var state = this.load(null, { query: query }, options);
+
+		// attributes to set on state model
+		var state = _.extend({ query: query }, window.history.state);
+		state = this.load(null, state, options);
+
 		this.transitionTo(state, options);
 	},
 
@@ -125,12 +138,11 @@ module.exports = Router.extend({
 
 		if (fragment == null) {
 			fragment = history.fragment;
-			if (history._usePushState) state = window.history.state;
 		}
 
-		var url = this.url(fragment, { root: history.root });
+		var url = this.url(fragment, history.root);
 
-		attrs = _.defaults(_.pick(url, 'path', 'search'), state, attrs);
+		attrs = _.defaults(_.pick(url, 'path', 'search'), attrs);
 		attrs.id = fragment;
 
 		opts = _.extend({}, this.options, opts);
@@ -153,6 +165,9 @@ module.exports = Router.extend({
 		return state;
 	},
 
+	// update the current state and trigger transition events.
+	// The leave event is triggered immediately on the previous state.
+	// The enter event is then triggered asynchronously.
 	transitionTo: function(state, opts) {
 		// save state on router
 		this.cid = state.cid;
@@ -165,6 +180,7 @@ module.exports = Router.extend({
 		if (state !== previous) {
 			if (previous) previous.leave(opts);
 
+			// options to pass along with enter event
 			opts = _.extend({ state: state, router: this }, this.options, opts);
 
 			state.loading = state.loading || true;
@@ -177,24 +193,29 @@ module.exports = Router.extend({
 
 			if (loading === true) state.enter(opts);
 			else if (loading) {
+				// provide xhr object to enter event handlers
 				opts.xhr = loading;
 				loading.options = opts;
 				loading.always(function() {
+					// make sure transition has not been aborted
 					if (state === states.current)
+						// make sure we use options from the latest transition
 						state.enter(loading.options);
 				});
 			}
 		}
 	},
 
-	// generate URL from decoded fragment
-	url: function(fragment, opts) {
+	// generate URL from decoded fragment by appending it to root.
+	// using root prefix from router options by default.
+	// root should end with a slash
+	url: function(fragment, root) {
 		fragment = (fragment || '').split('#');
 
-		opts = _.extend({}, this.options, opts);
+		if (root == null)
+			root = this.options.root || '';
 
-		var root = opts.root || '',
-			url = encodeURI(fragment[0]).replace(/%25/g, '%'),
+		var url = encodeURI(fragment[0]).replace(/%25/g, '%'),
 			path = url.replace(/\?.*/, ''),
 			search = url.slice(path.length);
 
