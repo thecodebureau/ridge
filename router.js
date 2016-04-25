@@ -50,6 +50,20 @@ module.exports = Router.extend({
 				_.each(resp && resp.compiled, dust.loadSource);
 
 				return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled', 'navigation', 'site');
+			},
+
+			enter: function(opts) {
+				if (this.loading) {
+					this.loading = false;
+					this.trigger('enter', opts);
+				}
+			},
+
+			leave: function(opts) {
+				if (this.loading === true)
+					this.loading = false;
+				else if (!this.loading)
+					this.trigger('leave', opts);
 			}
 		})
 	}),
@@ -153,8 +167,7 @@ module.exports = Router.extend({
 		states.current = state;
 
 		if (state !== previous) {
-			if (previous && !previous.loading)
-				previous.trigger('leave', opts);
+			if (previous) previous.leave(opts);
 
 			opts = _.extend({ state: state, router: this }, this.options, opts);
 
@@ -165,16 +178,15 @@ module.exports = Router.extend({
 
 		function enter() {
 			var loading = state.loading;
-			if (state === states.current && loading) {
-				if (loading === true) {
-					state.loading = false;
-					state.trigger('enter', opts);
-				} else {
-					loading.done(function() {
-						state.loading = true;
-						enter();
-					});
-				}
+
+			if (loading === true) state.enter(opts);
+			else if (loading) {
+				opts.xhr = loading;
+				loading.options = opts;
+				loading.always(function() {
+					if (state === states.current)
+						state.enter(loading.options);
+				});
 			}
 		}
 	},
