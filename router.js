@@ -39,6 +39,11 @@ module.exports = Router.extend({
 	// application states shared by router instances
 	states: new Backbone.Collection(null, {
 		model: Backbone.Model.extend({
+			// should contain defaults for attributes saved in history.state
+			defaults: {
+				scrollTop: 0
+			},
+
 			url: function() {
 				var path = this.get('path');
 				return path && path + (this.get('search') || '');
@@ -51,6 +56,7 @@ module.exports = Router.extend({
 			// make this the active state.
 			// triggers enter event if state was inactive
 			enter: function(opts) {
+				this.loading = false;
 				if (!this.active) {
 					this.active = true;
 					this.trigger('enter', opts);
@@ -99,6 +105,9 @@ module.exports = Router.extend({
 		var url = this.url(fragment);
 
 		if (options === true) options = { trigger: true };
+
+		if (options && options.trigger && !options.replace)
+			this.remember(this.scrollState());
 
 		this.states.pending = options;
 		// ignoring url.hash for now
@@ -228,5 +237,21 @@ module.exports = Router.extend({
 			search: search,
 			hash: fragment.join('#')
 		};
+	},
+
+	// returns scroll position that should be saved
+	scrollState: function() {
+		return { scrollTop: window.pageYOffset };
+	},
+
+	// update history.state.
+	// sets attributes on the current active state
+	remember: function(attrs, options) {
+		var current = this.states.current;
+		if (current && current.active) {
+			current.set(attrs, options);
+			if (Backbone.history._usePushState)
+				window.history.replaceState(_.extend({}, window.history.state, attrs), document.title);
+		}
 	}
 });

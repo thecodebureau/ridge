@@ -26,9 +26,6 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			if (href.slice(0, index) + '/' == root && href.indexOf('#', index) < 0) {
 				e.preventDefault();
 
-				if (window.history && window.history.scrollRestoration == 'manual')
-					app.remember({ pageYOffset: window.pageYOffset });
-
 				// navigate to URL fragment without the root
 				app.router.navigate(href.slice(index), { trigger: true });
 			}
@@ -105,8 +102,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		(app.currentPage = page).$el.appendTo(app.elements.main);
 	},
 
-	remember: function(state) {
-		if (Backbone.history._usePushState)
-			window.history.replaceState(_.extend({}, window.history.state, state), document.title);
+	remember: function(state, options) {
+		app.router.remember(state, options);
 	}
 });
