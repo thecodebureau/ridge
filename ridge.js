@@ -56,7 +56,12 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 
 		app.router.states.reset(options.states, { parse: true });
 
-		app.router.states.on('enter', app.createPage);
+		app.router.states.on({
+			sync: app.loadTemplates,
+			error: app.setError,
+			enter: app.createPage
+		}, app);
+
 		app.router.states.pending = options;
 
 		Backbone.history.start(options);
@@ -68,6 +73,20 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 		Backbone.View.call(app);
 	},
 
+	// on sync
+	loadTemplates: function(state, resp) {
+		_.each(resp && resp.compiled, dust.loadSource);
+	},
+
+	// on error
+	setError: function(state, xhr, options) {
+		state.set({
+			page: { template: 'error' },
+			error: _.extend(_.pick(xhr, 'status', 'statusText'), xhr.responseJSON)
+		}, options);
+	},
+
+	// on enter
 	createPage: function(options) {
 		var PageView = options && options.view;
 
