@@ -41,7 +41,7 @@ module.exports = Router.extend({
 		model: Backbone.Model.extend({
 			// should contain defaults for attributes saved in history.state
 			defaults: {
-				scrollTop: 0
+				scrollTop: null
 			},
 
 			url: function() {
@@ -187,7 +187,7 @@ module.exports = Router.extend({
 		states.current = state;
 
 		if (state !== previous) {
-			if (previous) previous.leave(opts);
+			if (previous) previous.leave(opts || {});
 
 			// options to pass along with enter event
 			opts = _.extend({ state: state, router: this }, this.options, opts);

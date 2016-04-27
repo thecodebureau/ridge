@@ -133,6 +133,8 @@ var View = Backbone.View.extend({
 
 		Backbone.View.apply(this, arguments);
 
+		if (this.rendering) return;
+
 		this.rendered = (this.el && (this.el.children.length > 0 || !!this.el.textContent.trim()));
 
 		if (!this.rendered) this.render();
