@@ -44,7 +44,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	start: function(options) {
-		app.elements = { main: $('main') };
+		app.elements = { main: $(options.main || main) };
 
 		app.router = new Router({
 			routes: this.routes,
@@ -58,6 +58,9 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			error: app.setError,
 			enter: app.createPage
 		}, app);
+
+    if(!options.el && app.elements.main.children().length > 0)
+      options.el = app.elements.main.children();
 
 		app.router.states.pending = options;
 
