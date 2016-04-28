@@ -44,7 +44,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 	},
 
 	start: function(options) {
-		app.elements = { main: $(options.main || main) };
+		app.elements = { main: $(options.main || 'main') };
 
 		app.router = new Router({
 			routes: this.routes,
