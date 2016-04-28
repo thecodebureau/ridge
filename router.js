@@ -44,6 +44,13 @@ module.exports = Router.extend({
 				scrollTop: null
 			},
 
+			initialize: function(attrs, options) {
+				var now = (this.created = new Date()).getTime();
+
+				if (options && typeof options.maxage == 'number')
+					(this.expires = new Date()).setTime(now + options.maxage);
+			},
+
 			url: function() {
 				var path = this.get('path');
 				return path && path + (this.get('search') || '');
@@ -163,13 +170,18 @@ module.exports = Router.extend({
 			states.get(attrs) ||
 			states.get(history.decodeFragment((opts.url || url.path) + url.search));
 
-		if (state)
-			state.set(_.defaults(attrs, _.result(state, 'defaults')), opts);
-		else {
-			state = states.add(attrs, opts);
-			if (opts.fetch !== false)
-				state.loading = state.fetch(opts);
+		if (state) {
+			// remove stale state
+			if (opts.trigger && state.expires && state.expires < new Date() &&
+					!state.loading && state !== states.current)
+				states.remove(state, opts);
+			else
+				return state.set(_.defaults(attrs, _.result(state, 'defaults')), opts);
 		}
+
+		state = states.add(attrs, opts);
+		if (opts.fetch !== false)
+			state.loading = state.fetch(opts);
 
 		return state;
 	},
@@ -194,6 +206,7 @@ module.exports = Router.extend({
 
 			state.loading = state.loading || true;
 
+			// allow route event handlers to execute before triggering enter
 			setTimeout(enter, 0);
 		}
 

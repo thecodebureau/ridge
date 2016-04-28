@@ -84,6 +84,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
 			page: { template: 'error' },
 			error: _.extend(_.pick(xhr, 'status', 'statusText'), xhr.responseJSON)
 		}, options);
+		state.expires = new Date();
 	},
 
 	// on enter
