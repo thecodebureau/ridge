@@ -2,8 +2,7 @@ require('./util/jquery-animate');
 
 /* Base view */
 
-var dust = require('dustjs-linkedin'),
-	app = require('./ridge'),
+var app = require('./ridge'),
 	Promise = require('./util/promise'),
 	tagPattern = /<(\w+)[^>]*>/,
 	attrPattern = /\s+(\S+)\s*=\s*("[^"]*"|'[^']*')/g;
@@ -126,12 +125,14 @@ var View = Backbone.View.extend({
 	},
 
 	constructor: function(options) {
-		_.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews', 'state'));
+		_.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews', 'state', 'templateEngine', 'loadTemplate'));
 
 		// we clone to prevent views referencing the same object
 		this.data = options && options.data ? _.clone(options.data) : {};
 
 		Backbone.View.apply(this, arguments);
+
+    this.loadTemplate();
 
 		if (this.rendering) return;
 
@@ -142,6 +143,17 @@ var View = Backbone.View.extend({
 
 		this.ready = this.ready || $.Callbacks('once memory').fireWith(this).add;
 	},
+
+  loadTemplate() {
+    if(this.template && this.template.render)
+      return this;
+
+    if(_.isString(this.template) && this.templateEngine) {
+      this.template = {
+        render: _.partial(this.templateEngine.render, this.template)
+      }
+    }
+  },
 
 	render: function() {
 		_.result(this, 'unobserve');
@@ -156,15 +168,15 @@ var View = Backbone.View.extend({
 	// Render Dust template and update element, using the fx queue
 
 	renderTemplate: function(data) {
-		var templateName = this.template,
-			rendering = this.Promise(function(resolve, reject) {
+		var self = this,
+      rendering = this.Promise(function(resolve, reject) {
 			this.$el.queue(function(next, hooks) {
 				// hooks.stop() is called if queue is stopped using $el.stop() or $el.finish()
 				hooks.stop = function() {
 					reject();
 				};
 
-				dust.render(templateName, data || {}, function(err, out) {
+				self.template.render(data || {}, function(err, out) {
 					if (err)
 						reject(err);
 					else
