@@ -1,3 +1,5 @@
+'use strict';
+
 require('./util/dust-mod');
 
 var dust = require('dustjs-linkedin');
@@ -14,8 +16,8 @@ var app = module.exports = _.create(Backbone.View.prototype, {
   el: document.documentElement,
 
   events: {
-    'click a[href]:not([target])': function(e) {
-      if (e.ctrlKey || e.metaKey || e.shiftKey || e.which == 2 || e.button == 2 || e.isDefaultPrevented())
+    'click a[href]:not([target])': function (e) {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.which === 2 || e.button === 2 || e.isDefaultPrevented())
         return;
 
       var href = e.currentTarget.href,
@@ -23,7 +25,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
         index = root.length - 1;
 
       // if the URL matches the root
-      if (href.slice(0, index) + '/' == root && href.indexOf('#', index) < 0) {
+      if (href.slice(0, index) + '/' === root && href.indexOf('#', index) < 0) {
         e.preventDefault();
 
         // navigate to URL fragment without the root
@@ -32,10 +34,10 @@ var app = module.exports = _.create(Backbone.View.prototype, {
     }
   },
 
-  extend: function() {
-    _.each(arguments, function(arg) {
-      _.each(arg, function(value, key) {
-        app[key] = typeof value == 'object' && /s$/.test(key) ?
+  extend: function () {
+    _.each(arguments, function (arg) {
+      _.each(arg, function (value, key) {
+        app[key] = typeof value === 'object' && /s$/.test(key) ?
           _.extend(app[key] || {}, value) : value;
       });
     });
@@ -43,7 +45,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
     return app;
   },
 
-  start: function(options) {
+  start: function (options) {
     app.elements = { main: $(options.main || 'main') };
 
     app.router = new Router({
@@ -59,7 +61,7 @@ var app = module.exports = _.create(Backbone.View.prototype, {
       enter: app.createPage
     }, app);
 
-    if(!options.el && app.elements.main.children().length > 0)
+    if (!options.el && app.elements.main.children().length > 0)
       options.el = app.elements.main.children();
 
     app.router.states.pending = options;
@@ -74,12 +76,12 @@ var app = module.exports = _.create(Backbone.View.prototype, {
   },
 
   // on sync
-  loadTemplates: function(state, resp) {
+  loadTemplates: function (state, resp) {
     _.each(resp && resp.compiled, dust.loadSource);
   },
 
   // on error
-  setError: function(state, xhr, options) {
+  setError: function (state, xhr, options) {
     state.set({
       page: { template: 'error' },
       error: _.extend(_.pick(xhr, 'status', 'statusText'), xhr.responseJSON)
@@ -88,25 +90,25 @@ var app = module.exports = _.create(Backbone.View.prototype, {
   },
 
   // on enter
-  createPage: function(options) {
+  createPage: function (options) {
     var PageView = options && options.view;
 
     var page = new PageView(options);
 
-    if(!(page.el.parentNode instanceof Element))
+    if (!(page.el.parentNode instanceof Element))
       app.switchPage(page, options);
     else
       app.currentPage = page;
   },
 
-  switchPage: function(page, options) {
-    if(app.currentPage)
+  switchPage: function (page, options) {
+    if (app.currentPage)
       app.currentPage.remove();
-    
+ 
     (app.currentPage = page).$el.appendTo(app.elements.main);
   },
 
-  remember: function(state, options) {
+  remember: function (state, options) {
     app.router.remember(state, options);
   }
 });

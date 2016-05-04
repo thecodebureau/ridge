@@ -1,3 +1,5 @@
+'use strict';
+
 var Router = Backbone.Router,
   route = Router.prototype.route;
 
@@ -10,7 +12,7 @@ var Router = Backbone.Router,
 function parseQueryString(query) {
   var result = {};
 
-  _.each(query.replace(/\+/g, ' ').split('&'), function(key) {
+  _.each(query.replace(/\+/g, ' ').split('&'), function (key) {
     var index = key.indexOf('='),
       val = '';
 
@@ -44,25 +46,25 @@ module.exports = Router.extend({
         scrollTop: null
       },
 
-      initialize: function(attrs, options) {
+      initialize: function (attrs, options) {
         var now = (this.created = new Date()).getTime();
 
-        if (options && typeof options.maxage == 'number')
+        if (options && typeof options.maxage === 'number')
           (this.expires = new Date()).setTime(now + options.maxage);
       },
 
-      url: function() {
+      url: function () {
         var path = this.get('path');
         return path && path + (this.get('search') || '');
       },
 
-      parse: function(resp) {
+      parse: function (resp) {
         return _.has(resp, 'data') ? resp.data : _.omit(resp, 'compiled', 'navigation', 'site');
       },
 
       // make this the active state.
       // triggers enter event if state was inactive
-      enter: function(opts) {
+      enter: function (opts) {
         this.loading = false;
         if (!this.active) {
           this.active = true;
@@ -72,7 +74,7 @@ module.exports = Router.extend({
 
       // make this state inactive.
       // triggers leave event if state was active
-      leave: function(opts) {
+      leave: function (opts) {
         if (this.loading === true)
           this.loading = false;
 
@@ -84,7 +86,7 @@ module.exports = Router.extend({
     })
   }),
 
-  constructor: function(options) {
+  constructor: function (options) {
     this.options = _.omit(options, 'routes');
     Router.apply(this, arguments);
   },
@@ -123,7 +125,7 @@ module.exports = Router.extend({
     return this;
   },
 
-  execute: function(callback, args) {
+  execute: function (callback, args) {
     var query = args.pop();
 
     if (_.isString(query))
@@ -147,7 +149,7 @@ module.exports = Router.extend({
   },
 
   // add and fetch new state or update existing state
-  load: function(fragment, attrs, opts) {
+  load: function (fragment, attrs, opts) {
     var states = this.states,
       state,
       history = Backbone.history;
@@ -189,7 +191,7 @@ module.exports = Router.extend({
   // update the current state and trigger transition events.
   // The leave event is triggered immediately on the previous state.
   // The enter event is then triggered asynchronously.
-  transitionTo: function(state, opts) {
+  transitionTo: function (state, opts) {
     // save state on router
     this.cid = state.cid;
 
@@ -218,7 +220,7 @@ module.exports = Router.extend({
         // provide xhr object to enter event handlers
         opts.xhr = loading;
         loading.options = opts;
-        loading.always(function() {
+        loading.always(function () {
           // make sure transition has not been aborted
           if (state === states.current)
             // make sure we use options from the latest transition
@@ -231,7 +233,7 @@ module.exports = Router.extend({
   // generate URL from decoded fragment by appending it to root.
   // using root prefix from router options by default.
   // root should end with a slash
-  url: function(fragment, root) {
+  url: function (fragment, root) {
     fragment = (fragment || '').split('#');
 
     if (root == null)
@@ -253,13 +255,13 @@ module.exports = Router.extend({
   },
 
   // returns scroll position that should be saved
-  scrollState: function() {
+  scrollState: function () {
     return { scrollTop: window.pageYOffset };
   },
 
   // update history.state.
   // sets attributes on the current active state
-  remember: function(attrs, options) {
+  remember: function (attrs, options) {
     var current = this.states.current;
     if (current && current.active) {
       current.set(attrs, options);

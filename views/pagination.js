@@ -1,14 +1,15 @@
-var app = require('ridge'),
-  View = require('ridge/view');
+'use strict';
+
+var View = require('../view');
 
 module.exports = View.extend({
   template: 'pagination',
 
-  initialize: function() {
+  initialize: function () {
     this.listenTo(this.collection, 'reset', this.render);
   },
 
-  render: function() {
+  render: function () {
     return View.prototype.render.apply(this);
   }
 });

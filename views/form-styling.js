@@ -1,4 +1,4 @@
-var app = require('../ridge');
+'use strict';
 
 var View = require('../view').extend();
 
@@ -15,7 +15,7 @@ _.extend(View.prototype, {
     'mouseout .invalid>label.icon': 'onUnhover'
   },
 
-  initialize: function(opts) {
+  initialize: function (opts) {
     this.listenTo(this.model, 'validated', this.setValid);
     this.listenTo(this.model, 'reset', this.reset);
 
@@ -24,12 +24,12 @@ _.extend(View.prototype, {
     this.$el.on('reset', this.reset.bind(this));
   },
 
-  attach: function() {
+  attach: function () {
     this.$el.attr('novalidate', 'novalidate');
 
     var self = this;
 
-    this.$('[data-name],[name]:not(:disabled)').each(function() {
+    this.$('[data-name],[name]:not(:disabled)').each(function () {
       //if(!/checkbox|radio/.test(this.type) && this.value || this.checked) {
       //  $(this).trigger('change');
       //}
@@ -38,15 +38,15 @@ _.extend(View.prototype, {
       self.onChange({ currentTarget: this });
     });
 
-    if($.fn.placeholder)
+    if ($.fn.placeholder)
       this.$('input,textarea').placeholder();
   },
 
-  labelClick: function(e) {
+  labelClick: function (e) {
     $(e.currentTarget).siblings('[name],[data-name]').focus();
   },
 
-  reset: function() {
+  reset: function () {
     this.$('[name], [data-name], .container').removeClass('valid invalid touched validated filled empty');
     this.$('label.error').remove();
 
@@ -55,50 +55,50 @@ _.extend(View.prototype, {
     setTimeout(this.attach.bind(this));
   },
 
-  onHover: function() {
+  onHover: function () {
     this.$el.addClass('hide-errors');
   },
 
-  onUnhover: function() {
+  onUnhover: function () {
     this.$el.removeClass('hide-errors');
   },
 
-  onChange: function(e) {
+  onChange: function (e) {
     var target = e.currentTarget,
       value = target.nodeName === 'DIV' ? target.textContent.trim() : /radio|checkbox/.test(target.type) ? target.checked : target.value;
 
     $(target).closest('div.container', this.el).toggleClass('empty', !value).toggleClass('filled', !!value);
   },
 
-  onFocus: function(e) {
+  onFocus: function (e) {
     $(e.currentTarget).closest('div.container', this.el).addClass('focus');
   },
 
-  onBlur: function(e) {
+  onBlur: function (e) {
     $(e.currentTarget).closest('div.container', this.el).addClass('touched').removeClass('focus');
   },
 
   setValid: function (model, errors, valid, options) {
     var self = this;
 
-    _.each(errors, function(error, property) {
+    _.each(errors, function (error, property) {
       var $container = self.$('[data-name="' + property + '"],[name="' + property + '"]')
         .removeClass('valid').addClass('invalid').closest('.container', self.el);
 
       var $label = $container.find('label.error');
 
-      if($label.length === 0)
+      if ($label.length === 0)
         $('<label class="error ' + property + '"><span>' + error + '</span></label>').appendTo($container);
-      else if($label.text() !== error)
+      else if ($label.text() !== error)
         $label.text(error);
 
       $container.removeClass('valid').addClass('invalid');
     });
 
-    if(!_.isEmpty(errors) && options && options.validateAll) 
+    if (!_.isEmpty(errors) && options && options.validateAll)
       self.$('[name].invalid,[data-name].invalid').first().focus();
 
-    _.each(valid, function(attr) {
+    _.each(valid, function (attr) {
       self.$('[data-name="' + attr + '"],[name="' + attr + '"]')
         .removeClass('invalid').addClass('valid validated')
         .closest('.container', self.el)

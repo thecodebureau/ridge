@@ -1,13 +1,13 @@
-var unflatten = require('./unflatten');
+'use strict';
 
 module.exports = function dot(obj, result, path) {
   result = result || {};
   path = path || [];
 
-  _.each(obj, function(value, key) {
-    if(_.isObject(value)) return dot(value, result, path.concat(key));
+  _.each(obj, function (value, key) {
+    if (_.isObject(value)) return dot(value, result, path.concat(key));
 
-    result[ path.concat(key).join('.') ] = value;
+    result[path.concat(key).join('.')] = value;
   });
 
   return result;
