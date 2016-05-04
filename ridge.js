@@ -1,18 +1,8 @@
 'use strict';
 
-require('./util/dust-mod');
-
-var dust = require('dustjs-linkedin');
-
 var Router = require('./router');
 
 var app = module.exports = _.create(Backbone.View.prototype, {
-  dust: dust,
-
-  helpers: dust.helpers,
-
-  filters: dust.filters,
-
   el: document.documentElement,
 
   events: {
@@ -78,11 +68,6 @@ var app = module.exports = _.create(Backbone.View.prototype, {
     }
 
     Backbone.View.call(app);
-  },
-
-  // on sync
-  loadTemplates: function (state, resp) {
-    _.each(resp && resp.compiled, dust.loadSource);
   },
 
   // on error
