@@ -1,14 +1,14 @@
 var View = require('ridge/view');
 
 module.exports = View.extend({
-	tagName: 'section',
+  tagName: 'section',
 
-	className: 'page',
+  className: 'page',
 
-	constructor: function(options) {
-		if(!this.template)
-			this.template = options.template || options.state && options.state.get('page').template;
+  constructor: function(options) {
+    if(!this.template)
+      this.template = options.template || options.state && options.state.get('page').template;
 
-		View.call(this, options);
-	}
+    View.call(this, options);
+  }
 });
