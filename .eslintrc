@@ -13,6 +13,7 @@
 		"one-var": 0,
 		"no-unused-vars": [ 2, { "args": "none" } ],
 		"no-alert": 0,
+    "no-cond-assign": 0,
 		"quote-props": 0,
 		"no-nested-ternary": 0,
 		"no-use-before-define": [2, { "functions": false, "classes": true }],

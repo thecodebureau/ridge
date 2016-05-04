@@ -1,3 +1,5 @@
+'use strict';
+
 require('./util/jquery-animate');
 
 /* Base view */
@@ -13,14 +15,15 @@ function parseElement(html, callback) {
   var m = html.match(tagPattern);    // match first start tag
 
   if (m) {
-    var tag = m[0], tagName = m[1],
+    var tag = m[0],
+      tagName = m[1],
       endTag = '</' + tagName + '>',
       endIndex = html.lastIndexOf('</');
 
     // check that the last end matches the start tag
     // and that there is no content after it
 
-    if (html.slice(endIndex).replace(/\s+/g, '') == endTag)
+    if (html.slice(endIndex).replace(/\s+/g, '') === endTag)
       return callback(html.slice(m.index + tag.length, endIndex), tag, endTag, tagName);
   }
 
@@ -28,7 +31,8 @@ function parseElement(html, callback) {
 }
 
 function attributes(tag) {    // extract attributes from tag string
-  var attrs = {}, m;
+  var attrs = {},
+    m;
 
   while (m = attrPattern.exec(tag))
     attrs[m[1]] = m[2].slice(1, -1);
@@ -41,7 +45,8 @@ function updateElement(html, tag, endTag, tagName) {
     if (this.$el.is(tagName)) {
       this.$el.attr(attributes(tag));
     } else {
-      var old = this.$el, queue = old.queue();
+      var old = this.$el,
+        queue = old.queue();
       old.clearQueue();
       this.setElement(tag + endTag);
       old.replaceWith(this.el);
@@ -58,25 +63,25 @@ function updateElement(html, tag, endTag, tagName) {
 function createViews() {
   var self = this;
 
-  return _.flatten(_.map(this.subviews, function(subview, name) {
+  return _.flatten(_.map(this.subviews, function (subview, name) {
     subview = parseSubview.call(self, subview);
 
     var Subview = subview.constructor;
 
-    if(!Subview) return;
+    if (!Subview) return;
 
-    if(!subview.multi) {
+    if (!subview.multi) {
       // passing of falsy subview.el uses parent elements element, ie one
       // element gets more than one view
       subview.el = subview.el ? self.$(subview.el) : $(self.el);
 
-      if(subview.el.length === 0)
+      if (subview.el.length === 0)
         return;
 
       return (self[name] = new Subview(subview));
     }
 
-    return (self[name] = _.map(self.$(subview.el), function(el) {
+    return (self[name] = _.map(self.$(subview.el), function (el) {
       subview.el = el;
       return new Subview(subview);
     }));
@@ -91,7 +96,7 @@ function parseSubview(subview) {
     data: this.data
   };
 
-  if(_.isArray(subview)) {
+  if (_.isArray(subview)) {
     subview = _.extend({
       el: subview[0],
       constructor: subview[1],
@@ -101,14 +106,14 @@ function parseSubview(subview) {
   subview.parent = this;
   //subview.name = name;
 
-  if(!subview.prepareView)
+  if (!subview.prepareView)
     _.defaults(subview, defaults);
 
   return subview;
 }
 
 function getElements(view) {
-  return _.mapValues(view.elements, function(selector, name) {
+  return _.mapValues(view.elements, function (selector, name) {
     selector = _.isString(selector) ? selector : selector.selector;
 
     return view.$(selector);
@@ -117,14 +122,14 @@ function getElements(view) {
 
 var View = Backbone.View.extend({
   // Promise factory function using view as the context with callbacks
-  Promise: function(resolver) {
+  Promise: function (resolver) {
     var context = this;
-    return new Promise(function(resolveWith) {
+    return new Promise(function (resolveWith) {
       resolveWith(context, null, resolver, context);
     });
   },
 
-  constructor: function(options) {
+  constructor: function (options) {
     _.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews', 'state', 'templateEngine', 'loadTemplate'));
 
     // we clone to prevent views referencing the same object
@@ -144,7 +149,7 @@ var View = Backbone.View.extend({
     this.ready = this.ready || $.Callbacks('once memory').fireWith(this).add;
   },
 
-  loadTemplate: function() {
+  loadTemplate: function () {
     if(this.template && this.template.render)
       return this;
 
@@ -155,7 +160,7 @@ var View = Backbone.View.extend({
     }
   },
 
-  render: function() {
+  render: function () {
     _.result(this, 'unobserve');
 
     var data = _.extend({}, app.context, _.result(this.state, 'toJSON'), this.data, _.result(this.model, 'toJSON'));
@@ -167,24 +172,24 @@ var View = Backbone.View.extend({
 
   // Render Dust template and update element, using the fx queue
 
-  renderTemplate: function(data) {
+  renderTemplate: function (data) {
     var self = this,
-      rendering = this.Promise(function(resolve, reject) {
-      this.$el.queue(function(next, hooks) {
-        // hooks.stop() is called if queue is stopped using $el.stop() or $el.finish()
-        hooks.stop = function() {
-          reject();
-        };
+      rendering = this.Promise(function (resolve, reject) {
+        this.$el.queue(function (next, hooks) {
+          // hooks.stop() is called if queue is stopped using $el.stop() or $el.finish()
+          hooks.stop = function () {
+            reject();
+          };
 
-        self.template.render(data || {}, function(err, out) {
-          if (err)
-            reject(err);
-          else
-            parseElement(out, resolve);
+          self.template.render(data || {}, function (err, out) {
+            if (err)
+              reject(err);
+            else
+              parseElement(out, resolve);
+          });
         });
-      });
-    }).done(updateElement, this._attach, function() { this.$el.dequeue(); })
-      .fail(Promise.error);
+      }).done(updateElement, this._attach, function () { this.$el.dequeue(); })
+        .fail(Promise.error);
 
     this.ready = rendering.done;
     this.rendering = rendering;
@@ -192,34 +197,34 @@ var View = Backbone.View.extend({
     return this;
   },
 
-  _attach: function() {
+  _attach: function () {
     this.views = createViews.call(this);
     this.elements = getElements(this);
-    if(this.attach) this.attach();
+    if (this.attach) this.attach();
   },
 
   // animated enter
-  enter: function() {
+  enter: function () {
     this.$el.enter.apply(this.$el, arguments);
     return this;
   },
 
-  preventDefault: function(e) {
+  preventDefault: function (e) {
     e.preventDefault();
   },
 
-  toggle: function(options) {
+  toggle: function (options) {
     this.$el.toggle(options);
     return this;
   },
 
   // animated remove
-  leave: function(options) {
+  leave: function (options) {
     this.stopListening();
 
     var subViews = this.views;
 
-    while(subViews && subViews.length > 0) {
+    while (subViews && subViews.length > 0) {
       _.invokeMap(subViews, 'stopListening');
 
       subViews = _.compact(_.flatten(_.map(subViews, 'views')));

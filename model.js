@@ -1,31 +1,33 @@
+'use strict';
+
 var flatten = require('./util/flatten');
 
 module.exports = Backbone.Model.extend({
-  constructor: function(attrs, opts) {
+  constructor: function (attrs, opts) {
     Backbone.Model.apply(this, arguments);
 
     var self = this;
 
     this.originalAttributes = _.cloneDeep(this.attributes);
 
-    this.on('sync', function() {
+    this.on('sync', function () {
       self.originalAttributes = _.cloneDeep(this.attributes);
     });
 
     _.extend(this, _.pick(opts, 'validation'));
   },
 
-  get: function(attr) {
+  get: function (attr) {
     return _.get(this.attributes, attr);
   },
 
   idAttribute: '_id',
 
-  isDirty: function() {
+  isDirty: function () {
     return !_.isEqual(this.attributes, this.originalAttributes);
   },
 
-  set: function(key, val, options) {
+  set: function (key, val, options) {
     if (key == null) return this;
 
     // Handle both `"key", value` and `{key: value}` -style arguments.
@@ -34,7 +36,7 @@ module.exports = Backbone.Model.extend({
       attrs = key;
 
       // fix so one can pass attrs object to unset
-      if(typeof options !== 'object')
+      if (typeof options !== 'object')
         options = val;
     } else {
       (attrs = {})[key] = val;
@@ -42,7 +44,7 @@ module.exports = Backbone.Model.extend({
 
     options || (options = {});
 
-    if(options.flatten)
+    if (options.flatten)
       attrs = flatten(attrs);
 
     // Run validation.
@@ -62,7 +64,7 @@ module.exports = Backbone.Model.extend({
 
     var current = this.attributes;
     var changed = this.changed;
-    var prev    = this._previousAttributes;
+    var prev = this._previousAttributes;
 
     // For each `set` attribute, update or delete the current value.
     for (var attr in attrs) {
@@ -108,7 +110,7 @@ module.exports = Backbone.Model.extend({
 
   // reset a model to latest synced state, or to default values
   // if model has not been persisted to server
-  reset: function(options) {
+  reset: function (options) {
     // TODO copy back victors version, stop emitting reset event and update set to remove properties if { unset: true }
     options = _.extend({ reset: true }, options);
 
@@ -116,10 +118,10 @@ module.exports = Backbone.Model.extend({
       unset = _.omit(flatten(this.attributes), _.keys(set));
 
     var result = this.unset(unset, options);
-    
+
     result = this.set(set, options);
 
-    if(result && !(options && options.silent))
+    if (result && !(options && options.silent))
       this.trigger('reset');
 
     return result;
