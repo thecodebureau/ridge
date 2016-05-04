@@ -3,148 +3,148 @@ require('./util/jquery-animate');
 /* Base view */
 
 var app = require('./ridge'),
-	Promise = require('./util/promise'),
-	tagPattern = /<(\w+)[^>]*>/,
-	attrPattern = /\s+(\S+)\s*=\s*("[^"]*"|'[^']*')/g;
+  Promise = require('./util/promise'),
+  tagPattern = /<(\w+)[^>]*>/,
+  attrPattern = /\s+(\S+)\s*=\s*("[^"]*"|'[^']*')/g;
 
 
 /* Extract wrapping element, attributes and contents */
 function parseElement(html, callback) {
-	var m = html.match(tagPattern);    // match first start tag
+  var m = html.match(tagPattern);    // match first start tag
 
-	if (m) {
-		var tag = m[0], tagName = m[1],
-			endTag = '</' + tagName + '>',
-			endIndex = html.lastIndexOf('</');
+  if (m) {
+    var tag = m[0], tagName = m[1],
+      endTag = '</' + tagName + '>',
+      endIndex = html.lastIndexOf('</');
 
-		// check that the last end matches the start tag
-		// and that there is no content after it
+    // check that the last end matches the start tag
+    // and that there is no content after it
 
-		if (html.slice(endIndex).replace(/\s+/g, '') == endTag)
-			return callback(html.slice(m.index + tag.length, endIndex), tag, endTag, tagName);
-	}
+    if (html.slice(endIndex).replace(/\s+/g, '') == endTag)
+      return callback(html.slice(m.index + tag.length, endIndex), tag, endTag, tagName);
+  }
 
-	return callback(html);
+  return callback(html);
 }
 
 function attributes(tag) {    // extract attributes from tag string
-	var attrs = {}, m;
+  var attrs = {}, m;
 
-	while (m = attrPattern.exec(tag))
-		attrs[m[1]] = m[2].slice(1, -1);
+  while (m = attrPattern.exec(tag))
+    attrs[m[1]] = m[2].slice(1, -1);
 
-	return attrs;
+  return attrs;
 }
 
 function updateElement(html, tag, endTag, tagName) {
-	if (tag && !this.rendered) {
-		if (this.$el.is(tagName)) {
-			this.$el.attr(attributes(tag));
-		} else {
-			var old = this.$el, queue = old.queue();
-			old.clearQueue();
-			this.setElement(tag + endTag);
-			old.replaceWith(this.el);
-			this.$el.queue(queue);
-		}
-	}
-	this.el.innerHTML = html;
-	this.rendered = true;
+  if (tag && !this.rendered) {
+    if (this.$el.is(tagName)) {
+      this.$el.attr(attributes(tag));
+    } else {
+      var old = this.$el, queue = old.queue();
+      old.clearQueue();
+      this.setElement(tag + endTag);
+      old.replaceWith(this.el);
+      this.$el.queue(queue);
+    }
+  }
+  this.el.innerHTML = html;
+  this.rendered = true;
 
-	// remove old subviews
-	_.invokeMap(this.views, 'remove');
+  // remove old subviews
+  _.invokeMap(this.views, 'remove');
 }
 
 function createViews() {
-	var self = this;
+  var self = this;
 
-	return _.flatten(_.map(this.subviews, function(subview, name) {
-		subview = parseSubview.call(self, subview);
+  return _.flatten(_.map(this.subviews, function(subview, name) {
+    subview = parseSubview.call(self, subview);
 
-		var Subview = subview.constructor;
+    var Subview = subview.constructor;
 
-		if(!Subview) return;
+    if(!Subview) return;
 
-		if(!subview.multi) {
-			// passing of falsy subview.el uses parent elements element, ie one
-			// element gets more than one view
-			subview.el = subview.el ? self.$(subview.el) : $(self.el);
+    if(!subview.multi) {
+      // passing of falsy subview.el uses parent elements element, ie one
+      // element gets more than one view
+      subview.el = subview.el ? self.$(subview.el) : $(self.el);
 
-			if(subview.el.length === 0)
-				return;
+      if(subview.el.length === 0)
+        return;
 
-			return (self[name] = new Subview(subview));
-		}
+      return (self[name] = new Subview(subview));
+    }
 
-		return (self[name] = _.map(self.$(subview.el), function(el) {
-			subview.el = el;
-			return new Subview(subview);
-		}));
-	}));
+    return (self[name] = _.map(self.$(subview.el), function(el) {
+      subview.el = el;
+      return new Subview(subview);
+    }));
+  }));
 }
 
 function parseSubview(subview) {
-	var defaults = {
-		collection: this.collection,
-		model: this.model,
-		state: this.state,
-		data: this.data
-	};
+  var defaults = {
+    collection: this.collection,
+    model: this.model,
+    state: this.state,
+    data: this.data
+  };
 
-	if(_.isArray(subview)) {
-		subview = _.extend({
-			el: subview[0],
-			constructor: subview[1],
-		}, subview[2]);
-	}
+  if(_.isArray(subview)) {
+    subview = _.extend({
+      el: subview[0],
+      constructor: subview[1],
+    }, subview[2]);
+  }
 
-	subview.parent = this;
-	//subview.name = name;
+  subview.parent = this;
+  //subview.name = name;
 
-	if(!subview.prepareView)
-		_.defaults(subview, defaults);
+  if(!subview.prepareView)
+    _.defaults(subview, defaults);
 
-	return subview;
+  return subview;
 }
 
 function getElements(view) {
-	return _.mapValues(view.elements, function(selector, name) {
-		selector = _.isString(selector) ? selector : selector.selector;
+  return _.mapValues(view.elements, function(selector, name) {
+    selector = _.isString(selector) ? selector : selector.selector;
 
-		return view.$(selector);
-	});
+    return view.$(selector);
+  });
 }
 
 var View = Backbone.View.extend({
-	// Promise factory function using view as the context with callbacks
-	Promise: function(resolver) {
-		var context = this;
-		return new Promise(function(resolveWith) {
-			resolveWith(context, null, resolver, context);
-		});
-	},
+  // Promise factory function using view as the context with callbacks
+  Promise: function(resolver) {
+    var context = this;
+    return new Promise(function(resolveWith) {
+      resolveWith(context, null, resolver, context);
+    });
+  },
 
-	constructor: function(options) {
-		_.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews', 'state', 'templateEngine', 'loadTemplate'));
+  constructor: function(options) {
+    _.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews', 'state', 'templateEngine', 'loadTemplate'));
 
-		// we clone to prevent views referencing the same object
-		this.data = options && options.data ? _.clone(options.data) : {};
+    // we clone to prevent views referencing the same object
+    this.data = options && options.data ? _.clone(options.data) : {};
 
-		Backbone.View.apply(this, arguments);
+    Backbone.View.apply(this, arguments);
 
     this.loadTemplate();
 
-		if (this.rendering) return;
+    if (this.rendering) return;
 
-		this.rendered = (this.el && (this.el.children.length > 0 || !!this.el.textContent.trim()));
+    this.rendered = (this.el && (this.el.children.length > 0 || !!this.el.textContent.trim()));
 
-		if (!this.rendered) this.render();
-		else this._attach();
+    if (!this.rendered) this.render();
+    else this._attach();
 
-		this.ready = this.ready || $.Callbacks('once memory').fireWith(this).add;
-	},
+    this.ready = this.ready || $.Callbacks('once memory').fireWith(this).add;
+  },
 
-  loadTemplate() {
+  loadTemplate: function() {
     if(this.template && this.template.render)
       return this;
 
@@ -155,80 +155,80 @@ var View = Backbone.View.extend({
     }
   },
 
-	render: function() {
-		_.result(this, 'unobserve');
+  render: function() {
+    _.result(this, 'unobserve');
 
-		var data = _.extend({}, app.context, _.result(this.state, 'toJSON'), this.data, _.result(this.model, 'toJSON'));
+    var data = _.extend({}, app.context, _.result(this.state, 'toJSON'), this.data, _.result(this.model, 'toJSON'));
 
-		this.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
+    this.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
 
-		return this;
-	},
+    return this;
+  },
 
-	// Render Dust template and update element, using the fx queue
+  // Render Dust template and update element, using the fx queue
 
-	renderTemplate: function(data) {
-		var self = this,
+  renderTemplate: function(data) {
+    var self = this,
       rendering = this.Promise(function(resolve, reject) {
-			this.$el.queue(function(next, hooks) {
-				// hooks.stop() is called if queue is stopped using $el.stop() or $el.finish()
-				hooks.stop = function() {
-					reject();
-				};
+      this.$el.queue(function(next, hooks) {
+        // hooks.stop() is called if queue is stopped using $el.stop() or $el.finish()
+        hooks.stop = function() {
+          reject();
+        };
 
-				self.template.render(data || {}, function(err, out) {
-					if (err)
-						reject(err);
-					else
-						parseElement(out, resolve);
-				});
-			});
-		}).done(updateElement, this._attach, function() { this.$el.dequeue(); })
-			.fail(Promise.error);
+        self.template.render(data || {}, function(err, out) {
+          if (err)
+            reject(err);
+          else
+            parseElement(out, resolve);
+        });
+      });
+    }).done(updateElement, this._attach, function() { this.$el.dequeue(); })
+      .fail(Promise.error);
 
-		this.ready = rendering.done;
-		this.rendering = rendering;
+    this.ready = rendering.done;
+    this.rendering = rendering;
 
-		return this;
-	},
+    return this;
+  },
 
-	_attach: function() {
-		this.views = createViews.call(this);
-		this.elements = getElements(this);
-		if(this.attach) this.attach();
-	},
+  _attach: function() {
+    this.views = createViews.call(this);
+    this.elements = getElements(this);
+    if(this.attach) this.attach();
+  },
 
-	// animated enter
-	enter: function() {
-		this.$el.enter.apply(this.$el, arguments);
-		return this;
-	},
+  // animated enter
+  enter: function() {
+    this.$el.enter.apply(this.$el, arguments);
+    return this;
+  },
 
-	preventDefault: function(e) {
-		e.preventDefault();
-	},
+  preventDefault: function(e) {
+    e.preventDefault();
+  },
 
-	toggle: function(options) {
-		this.$el.toggle(options);
-		return this;
-	},
+  toggle: function(options) {
+    this.$el.toggle(options);
+    return this;
+  },
 
-	// animated remove
-	leave: function(options) {
-		this.stopListening();
+  // animated remove
+  leave: function(options) {
+    this.stopListening();
 
-		var subViews = this.views;
+    var subViews = this.views;
 
-		while(subViews && subViews.length > 0) {
-			_.invokeMap(subViews, 'stopListening');
+    while(subViews && subViews.length > 0) {
+      _.invokeMap(subViews, 'stopListening');
 
-			subViews = _.compact(_.flatten(_.map(subViews, 'views')));
-		}
+      subViews = _.compact(_.flatten(_.map(subViews, 'views')));
+    }
 
-		this.$el.leave(options);
+    this.$el.leave(options);
 
-		return this;
-	}
+    return this;
+  }
 });
 
 View.prototype._remove = View.prototype.remove;
