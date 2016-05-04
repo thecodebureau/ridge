@@ -1,7 +1,5 @@
 'use strict';
 
-require('./util/jquery-animate');
-
 /* Base view */
 
 var app = require('./ridge'),
