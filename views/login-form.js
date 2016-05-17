@@ -59,7 +59,8 @@ _.extend(View.prototype, require('../mixins/observe'), {
   },
 
   error: function (model, xhr, options) {
-    _.result(this.message, 'remove');
+    if (this.message)
+      this.message.leave({ animateHeight: true });
 
     var resp = xhr.responseJSON;
 
@@ -69,7 +70,7 @@ _.extend(View.prototype, require('../mixins/observe'), {
         heading: resp.statusText,
         body: resp.message
       }
-    }).enter(this.elements.form, { method: 'prepend' });
+    }).enter(this.elements.form, { method: 'prepend', animateHeight: true });
   },
 
   save: function (e) {

@@ -47,7 +47,7 @@ _.extend(View.prototype, {
   },
 
   reset: function () {
-    this.$('[name], [data-name], .container').removeClass('valid invalid touched validated filled empty');
+    this.$('[name], [data-name], .field-container').removeClass('valid invalid touched validated filled empty');
     this.$('label.error').remove();
 
     // needed when reset is called by 'form' reset event,
@@ -67,15 +67,15 @@ _.extend(View.prototype, {
     var target = e.currentTarget,
       value = target.nodeName === 'DIV' ? target.textContent.trim() : /radio|checkbox/.test(target.type) ? target.checked : target.value;
 
-    $(target).closest('div.container', this.el).toggleClass('empty', !value).toggleClass('filled', !!value);
+    $(target).closest('.field-container', this.el).toggleClass('empty', !value).toggleClass('filled', !!value);
   },
 
   onFocus: function (e) {
-    $(e.currentTarget).closest('div.container', this.el).addClass('focus');
+    $(e.currentTarget).closest('.field-container', this.el).addClass('focus');
   },
 
   onBlur: function (e) {
-    $(e.currentTarget).closest('div.container', this.el).addClass('touched').removeClass('focus');
+    $(e.currentTarget).closest('.field-container', this.el).addClass('touched').removeClass('focus');
   },
 
   setValid: function (model, errors, valid, options) {
@@ -83,7 +83,7 @@ _.extend(View.prototype, {
 
     _.each(errors, function (error, property) {
       var $container = self.$('[data-name="' + property + '"],[name="' + property + '"]')
-        .removeClass('valid').addClass('invalid').closest('.container', self.el);
+        .removeClass('valid').addClass('invalid').closest('.field-container', self.el);
 
       var $label = $container.find('label.error');
 
@@ -101,7 +101,7 @@ _.extend(View.prototype, {
     _.each(valid, function (attr) {
       self.$('[data-name="' + attr + '"],[name="' + attr + '"]')
         .removeClass('invalid').addClass('valid validated')
-        .closest('.container', self.el)
+        .closest('.field-container', self.el)
         .removeClass('invalid').addClass('valid validated')
         .find('label.error').remove();
     });
