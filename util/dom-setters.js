@@ -38,27 +38,29 @@ module.exports = {
     $el.trigger('change', { internal: true });
   },
 
-  value: function ($el, value, previousValue) {
-    $el = $($el);
+  value: function (el, value, previousValue) {
+    if (el.type === 'radio' || el.type === 'checkbox') {
+      if (el.name && el.form)
+        el = el.form[el.name];
 
-    if ($el[0].type === 'radio' || $el[0].type === 'checkbox') {
-      if ($el.length === 1) {
-        $el.prop('checked', !!value);
+      if ('length' in el) {
+        $(el).prop('checked', false);
+
+        if (value != null)
+          _.each(el, function (el) {
+            if (_.isArray(value) && value.indexOf(el.value) > -1 || el.value === value)
+              el.checked = true;
+          });
       } else {
-        $el.prop('checked', false);
-
-        if (value)
-          $el.filter((_.isArray(value) ? value : [ value ]).map(function (value) {
-            return '[value="' + value + '"]';
-          }).join(',')).prop('checked', true);
+        el.checked = !!value;
       }
     } else {
       if (value != null) value = value.toString();
 
-      $el.val(value);
+      $(el).val(value);
     }
 
-    $el.trigger('change', { internal: true });
+    $(el).trigger('change', { internal: true });
   },
 
   published: function ($el, value) {
