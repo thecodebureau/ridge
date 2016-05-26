@@ -2,6 +2,9 @@
 
 var FormView = require('./form-styling');
 
+var getValue = require('../util/dom-getters').value;
+var setValue = require('../util/dom-setters').value;
+
 module.exports = FormView.extend({
   events: {
     'submit': 'submit'
@@ -10,16 +13,22 @@ module.exports = FormView.extend({
   submit: function (e) {
     e.preventDefault();
 
-    var query = [];
+    var query = {};
 
     _.each(this.$el.prop('elements'), function (elem) {
-      if (elem.name && elem.value)
-        query.push(encodeURIComponent(elem.name) + '=' + encodeURIComponent(elem.value).replace('%20', '+'));
+      // TODO this will currently loop through all checkboxes
+      // and radio buttons in a group.
+      if (!elem.name) return;
+
+      var value = getValue(elem);
+
+      if (value)
+        query[encodeURIComponent(elem.name)] = encodeURIComponent(value).replace('%20', '+');
     });
 
     var url = '/' + Backbone.history.fragment.split('?')[0];
 
-    if (query.length) url += '?' + query.join('&');
+    if (!_.isEmpty(query)) url += '?' + $.param(query);
 
     Backbone.history.navigate(url, { trigger: true });
   },
@@ -32,8 +41,8 @@ module.exports = FormView.extend({
     var query = this.state.get('query') || {};
 
     _.each(this.$el.prop('elements'), function (elem) {
-      if (elem.name)
-        $(elem).val(query[elem.name]).trigger('change');
+      setValue(elem, query[elem.name] || '');
+      $(elem).trigger('change');
     });
   }
 });
