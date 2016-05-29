@@ -26,15 +26,17 @@ module.exports = FormView.extend({
         query[encodeURIComponent(elem.name)] = encodeURIComponent(value).replace('%20', '+');
     });
 
-    var url = '/' + Backbone.history.fragment.split('?')[0];
+    var url = this.url || '/' + Backbone.history.fragment.split('?')[0];
 
     if (!_.isEmpty(query)) url += '?' + $.param(query);
 
     Backbone.history.navigate(url, { trigger: true });
   },
 
-  initialize: function () {
+  initialize: function (options) {
     this.listenTo(this.state, 'change:query', this.attach);
+
+    this.url = options.url;
   },
 
   attach: function (model, value) {
