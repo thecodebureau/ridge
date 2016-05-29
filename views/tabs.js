@@ -7,7 +7,7 @@ module.exports = require('../view').extend({
 
   elements: {
     buttons: '.buttons > button',
-    containers: '> .container'
+    containers: '> .container, > .field-container'
   },
 
   toggle: function (e) {
