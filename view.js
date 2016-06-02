@@ -196,7 +196,7 @@ var View = Backbone.View.extend({
   },
 
   _attach: function () {
-    this.views = createViews.call(this);
+    this._subviews = createViews.call(this);
     this.elements = getElements(this);
     if (this.attach) this.attach();
   },
@@ -216,6 +216,14 @@ var View = Backbone.View.extend({
     return this;
   },
 
+  remove: function () {
+    _.invokeMap(this._subviews, 'remove');
+
+    this._removeElement();
+    this.stopListening();
+    return this;
+  },
+
   // animated remove
   leave: function (options) {
     this.stopListening();
@@ -228,13 +236,14 @@ var View = Backbone.View.extend({
       subViews = _.compact(_.flatten(_.map(subViews, 'views')));
     }
 
-    this.$el.leave(options);
+    this.$el.leave(options, this.remove.bind(this));
 
     return this;
   }
 });
 
 View.prototype._remove = View.prototype.remove;
+View.prototype._stopListening = View.prototype.stopListening;
 View.prototype._render = View.prototype.render;
 
 module.exports = View;
