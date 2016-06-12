@@ -113,7 +113,7 @@ function parseBindings(bindings, key) {
       getter;
 
     if(domGetter) {
-      getter = makeGetter(domGetter, key).bind(self);
+      getter = makeGetter(domGetter.bind(self), key).bind(self);
       getter.events = domGetter.events;
     }
 
