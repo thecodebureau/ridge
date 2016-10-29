@@ -1,6 +1,6 @@
 {
   "name": "ridge",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Non-agnostic attempt to bring structure to backbone apps.",
   "main": "./ridge.js",
   "scripts": {
