@@ -1,16 +1,17 @@
-'use strict';
+import Model from './model';
 
-module.exports = Backbone.Collection.extend({
-  constructor: function (attributes, options) {
-    Backbone.Collection.apply(this, arguments);
+export default Backbone.Collection.extend({
+  constructor(...args) {
+    Backbone.Collection.apply(this, args);
 
-    if (this.model === Backbone.Model)
-      this.model = require('./model');
+    if (this.model === Backbone.Model) {
+      this.model = Model;
+    }
 
     return this;
   },
 
-  parse: function (resp) {
+  parse(resp) {
     if (_.isPlainObject(resp)) {
       _.extend(this, _.pick(resp, 'totalCount', 'perPage'));
 
@@ -18,5 +19,5 @@ module.exports = Backbone.Collection.extend({
     }
 
     return resp;
-  }
+  },
 });

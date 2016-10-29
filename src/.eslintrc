@@ -1,0 +1,16 @@
+{
+  "extends": [
+    "airbnb-base",
+    "../.eslintrc"
+  ],
+
+  "env": {
+    "browser": true
+  },
+
+  "globals": {
+    "$": true,
+    "_": true,
+    "Backbone": true
+  }
+}

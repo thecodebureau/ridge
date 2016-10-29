@@ -1,33 +1,36 @@
 // return an unflattened copy of attrs
 // merging dot-delimited attributes with nested attributes in this.attributes
-module.exports = function(attrs, mergeAttrs) {
-  var result = {},
-    attributes = mergeAttrs || {};
+export default function unflatten(attrs, mergeAttrs) {
+  const result = {};
+  const attributes = mergeAttrs || {};
 
-  for (var attr in attrs) {
-    var val = attrs[attr],
-      path = attr.split('.');
+  // eslint-disable-next-line
+  for (let attr in attrs) {
+    const val = attrs[attr];
+    const path = attr.split('.');
 
     if (path.length > 1) {
       attr = path.pop();
 
-      var obj = _.reduce(path, makeNested, result);
+      const obj = _.reduce(path, makeNested, result);
 
-      if (obj[attr] !== val)
+      if (obj[attr] !== val) {
         obj[attr] = val;
+      }
     } else {
       result[attr] = val;
     }
   }
 
   function makeNested(obj, key, level) {
-    var attrs = (level || _.has(obj, key) ? obj : attributes)[key];
+    const attrs = (level || _.has(obj, key) ? obj : attributes)[key];
 
     obj = obj[key] = {};
 
-    _.some(attrs, function(val, key) {
+    _.some(attrs, (val, key) => {
       // check that we are not iterating an array-like object
-      if (typeof key == 'number') return true;
+      if (typeof key === 'number') return true;
+
       obj[key] = val;
     });
 
@@ -35,4 +38,4 @@ module.exports = function(attrs, mergeAttrs) {
   }
 
   return result;
-};
+}

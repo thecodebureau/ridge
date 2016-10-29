@@ -1,15 +1,13 @@
-'use strict';
+import View from '../view';
 
-var View = require('../view');
-
-module.exports = View.extend({
+export default View.extend({
   template: 'pagination',
 
-  initialize: function () {
+  initialize() {
     this.listenTo(this.collection, 'reset', this.render);
   },
 
-  render: function () {
+  render() {
     return View.prototype.render.apply(this);
-  }
+  },
 });

@@ -1,51 +1,16 @@
-'use strict';
+
 
 /* Base view */
 
-var app = require('./ridge'),
-  Promise = require('./util/promise'),
-  tagPattern = /<(\w+)[^>]*>/,
-  attrPattern = /\s+(\S+)\s*=\s*("[^"]*"|'[^']*')/g;
-
-
-/* Extract wrapping element, attributes and contents */
-function parseElement(html, callback) {
-  var m = html.match(tagPattern);    // match first start tag
-
-  if (m) {
-    var tag = m[0],
-      tagName = m[1],
-      endTag = '</' + tagName + '>',
-      endIndex = html.lastIndexOf('</');
-
-    // check that the last end matches the start tag
-    // and that there is no content after it
-
-    if (html.slice(endIndex).replace(/\s+/g, '') === endTag)
-      return callback(html.slice(m.index + tag.length, endIndex), tag, endTag, tagName);
-  }
-
-  return callback(html);
-}
-
-function attributes(tag) {    // extract attributes from tag string
-  var attrs = {},
-    m;
-
-  while (m = attrPattern.exec(tag))
-    attrs[m[1]] = m[2].slice(1, -1);
-
-  return attrs;
-}
-
+import app from './ridge';
 
 function createViews() {
-  var self = this;
+  const self = this;
 
-  return _.flatten(_.map(this.subviews, function (subview, name) {
+  return _.flatten(_.map(this.subviews, (subview, name) => {
     subview = parseSubview.call(self, subview);
 
-    var Subview = subview.constructor;
+    const Subview = subview.constructor;
 
     if (!Subview) return;
 
@@ -54,13 +19,14 @@ function createViews() {
       // element gets more than one view
       subview.el = subview.el ? self.$(subview.el) : $(self.el);
 
-      if (subview.el.length === 0)
+      if (subview.el.length === 0) {
         return;
+      }
 
       return (self[name] = new Subview(subview));
     }
 
-    return (self[name] = _.map(self.$(subview.el), function (el) {
+    return (self[name] = _.map(self.$(subview.el), (el) => {
       subview.el = el;
       return new Subview(subview);
     }));
@@ -68,11 +34,11 @@ function createViews() {
 }
 
 function parseSubview(subview) {
-  var defaults = {
+  const defaults = {
     collection: this.collection,
     model: this.model,
     state: this.state,
-    data: this.data
+    data: this.data,
   };
 
   if (_.isArray(subview)) {
@@ -83,38 +49,31 @@ function parseSubview(subview) {
   }
 
   subview.parent = this;
-  //subview.name = name;
+  // subview.name = name;
 
-  if (!subview.prepareView)
+  if (!subview.prepareView) {
     _.defaults(subview, defaults);
+  }
 
   return subview;
 }
 
 function getElements(view) {
-  return _.mapValues(view.elements, function (selector, name) {
+  return _.mapValues(view.elements, (selector) => {
     selector = _.isString(selector) ? selector : selector.selector;
 
     return view.$(selector);
   });
 }
 
-var View = Backbone.View.extend({
-  // Promise factory function using view as the context with callbacks
-  Promise: function (resolver) {
-    var context = this;
-    return new Promise(function (resolveWith) {
-      resolveWith(context, null, resolver, context);
-    });
-  },
-
-  constructor: function (options) {
+const View = Backbone.View.extend({
+  constructor(options, ...args) {
     _.extend(this, _.pick(options, 'template', 'parent', 'bindings', 'subviews', 'state', 'templateEngine', 'loadTemplate'));
 
     // we clone to prevent views referencing the same object
     this.data = options && options.data ? _.clone(options.data) : {};
 
-    Backbone.View.apply(this, arguments);
+    Backbone.View.call(this, options, ...args);
 
     if (this.rendering) return;
 
@@ -124,10 +83,10 @@ var View = Backbone.View.extend({
     else this._attach();
   },
 
-  render: function () {
+  render() {
     _.result(this, 'unobserve');
 
-    var data = _.extend({}, app.context, _.result(this.state, 'toJSON'), this.data, _.result(this.model, 'toJSON'));
+    const data = _.extend({}, app.context, _.result(this.state, 'toJSON'), this.data, _.result(this.model, 'toJSON'));
 
     this.renderTemplate(data);
 
@@ -136,8 +95,8 @@ var View = Backbone.View.extend({
 
   // Render Dust template and update element, using the fx queue
 
-  renderTemplate: function (data) {
-    var result = this.template(data);
+  renderTemplate(data) {
+    const result = this.template(data);
 
     this.updateElement(result);
 
@@ -148,7 +107,7 @@ var View = Backbone.View.extend({
     return this;
   },
 
-  updateElement: function (newEl) {
+  updateElement(newEl) {
     if (typeof newEl === 'string') {
       newEl = $(newEl)[0];
     }
@@ -156,37 +115,37 @@ var View = Backbone.View.extend({
     this.$el.empty();
     this.$el.append(newEl.childNodes);
 
-    _.forEach(newEl.attributes, function (node) {
+    _.forEach(newEl.attributes, (node) => {
       this.$el.attr(node.nodeName, node.value);
-    }.bind(this));
+    });
 
     // remove old subviews
     _.invokeMap(this.views, 'remove');
   },
 
 
-  _attach: function () {
+  _attach() {
     this._subviews = createViews.call(this);
     this.elements = getElements(this);
     if (this.attach) this.attach();
   },
 
   // animated enter
-  enter: function () {
-    this.$el.enter.apply(this.$el, arguments);
+  enter(...args) {
+    this.$el.enter(...args);
     return this;
   },
 
-  preventDefault: function (e) {
+  preventDefault(e) {
     e.preventDefault();
   },
 
-  toggle: function (options) {
+  toggle(options) {
     this.$el.toggle(options);
     return this;
   },
 
-  remove: function () {
+  remove() {
     _.invokeMap(this._subviews, 'remove');
 
     this._removeElement();
@@ -195,10 +154,10 @@ var View = Backbone.View.extend({
   },
 
   // animated remove
-  leave: function (options) {
+  leave(options) {
     this.stopListening();
 
-    var subViews = this.views;
+    let subViews = this.views;
 
     while (subViews && subViews.length > 0) {
       _.invokeMap(subViews, 'stopListening');
@@ -209,11 +168,11 @@ var View = Backbone.View.extend({
     this.$el.leave(options, this.remove.bind(this));
 
     return this;
-  }
+  },
 });
 
 View.prototype._remove = View.prototype.remove;
 View.prototype._stopListening = View.prototype.stopListening;
 View.prototype._render = View.prototype.render;
 
-module.exports = View;
+export default View;

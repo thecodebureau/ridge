@@ -1,7 +1,7 @@
-'use strict';
+import View from '../view';
 
-module.exports = require('../view').extend({
-  initialize: function (opt) {
+export default View.extend({
+  initialize(opt) {
     this.data = opt.message;
   },
 

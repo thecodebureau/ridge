@@ -1,8 +1,8 @@
-'use strict';
+import View from '../view';
 
-var View = require('../view').extend();
+const FormStylingView = View.extend();
 
-_.extend(View.prototype, {
+_.extend(FormStylingView.prototype, {
   tagName: 'form',
 
   events: {
@@ -12,10 +12,10 @@ _.extend(View.prototype, {
     'change select,input,textarea,[data-name]': 'onChange',
     'click label': 'labelClick',
     'mouseover .invalid>label.icon': 'onHover',
-    'mouseout .invalid>label.icon': 'onUnhover'
+    'mouseout .invalid>label.icon': 'onUnhover',
   },
 
-  initialize: function (opts) {
+  initialize() {
     this.listenTo(this.model, 'validated', this.setValid);
     this.listenTo(this.model, 'reset', this.reset);
 
@@ -24,29 +24,30 @@ _.extend(View.prototype, {
     this.$el.on('reset', this.reset.bind(this));
   },
 
-  attach: function () {
+  attach() {
     this.$el.attr('novalidate', 'novalidate');
 
-    var self = this;
+    const self = this;
 
     this.$('[data-name],[name]:not(:disabled)').each(function () {
-      //if(!/checkbox|radio/.test(this.type) && this.value || this.checked) {
+      // if(!/checkbox|radio/.test(this.type) && this.value || this.checked) {
       //  $(this).trigger('change');
-      //}
+      // }
 
       // set non-empty classes
       self.onChange({ currentTarget: this });
     });
 
-    if ($.fn.placeholder)
+    if ($.fn.placeholder) {
       this.$('input,textarea').placeholder();
+    }
   },
 
-  labelClick: function (e) {
+  labelClick(e) {
     $(e.currentTarget).siblings('[name],[data-name]').focus();
   },
 
-  reset: function () {
+  reset() {
     this.$('[name], [data-name], .field-container').removeClass('valid invalid touched validated filled empty');
     this.$('label.error').remove();
 
@@ -55,57 +56,63 @@ _.extend(View.prototype, {
     setTimeout(this.attach.bind(this));
   },
 
-  onHover: function () {
+  onHover() {
     this.$el.addClass('hide-errors');
   },
 
-  onUnhover: function () {
+  onUnhover() {
     this.$el.removeClass('hide-errors');
   },
 
-  onChange: function (e) {
-    var target = e.currentTarget,
-      value = target.nodeName === 'DIV' ? target.textContent.trim() : /radio|checkbox/.test(target.type) ? target.checked : target.value;
+  onChange(e) {
+    const target = e.currentTarget;
+    // eslint-disable-next-line no-nested-ternary
+    const value = target.nodeName === 'DIV' ? target.textContent.trim() : /radio|checkbox/.test(target.type) ? target.checked : target.value;
 
     $(target).closest('.field-container', this.el).toggleClass('empty', !value).toggleClass('filled', !!value);
   },
 
-  onFocus: function (e) {
+  onFocus(e) {
     $(e.currentTarget).closest('.field-container', this.el).addClass('focus');
   },
 
-  onBlur: function (e) {
+  onBlur(e) {
     $(e.currentTarget).closest('.field-container', this.el).addClass('touched').removeClass('focus');
   },
 
-  setValid: function (model, errors, valid, options) {
-    var self = this;
+  setValid(model, errors, valid, options) {
+    const self = this;
 
-    _.each(errors, function (error, property) {
-      var $container = self.$('[data-name="' + property + '"],[name="' + property + '"]')
+    _.each(errors, (error, property) => {
+      const $container = self.$(`[data-name="${property}"],[name="${property}"]`)
         .removeClass('valid').addClass('invalid').closest('.field-container', self.el);
 
-      var $label = $container.find('label.error');
+      const $label = $container.find('label.error');
 
-      if ($label.length === 0)
-        $('<label class="error ' + property + '"><span>' + error + '</span></label>').appendTo($container);
-      else if ($label.text() !== error)
+      if ($label.length === 0) {
+        $(`<label class="error ${property}"><span>${error}</span></label>`).appendTo($container);
+      } else if ($label.text() !== error) {
         $label.text(error);
+      }
 
       $container.removeClass('valid').addClass('invalid');
     });
 
-    if (!_.isEmpty(errors) && options && options.validateAll)
+    if (!_.isEmpty(errors) && options && options.validateAll) {
       self.$('[name].invalid,[data-name].invalid').first().focus();
+    }
 
-    _.each(valid, function (attr) {
-      self.$('[data-name="' + attr + '"],[name="' + attr + '"]')
-        .removeClass('invalid').addClass('valid validated')
+    _.each(valid, (attr) => {
+      self.$(`[data-name="${attr}"],[name="${attr}"]`)
+        .removeClass('invalid')
+        .addClass('valid validated')
         .closest('.field-container', self.el)
-        .removeClass('invalid').addClass('valid validated')
-        .find('label.error').remove();
+        .removeClass('invalid')
+        .addClass('valid validated')
+        .find('label.error')
+        .remove();
     });
   },
 });
 
-module.exports = View;
+export default FormStylingView;

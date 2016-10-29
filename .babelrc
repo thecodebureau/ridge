@@ -1,0 +1,19 @@
+{
+  "env": {
+    "node": {
+      "presets": [ "es2015-node6" ],
+      "plugins": [
+        "add-module-exports"
+      ]
+    },
+    "cjs": {
+      "presets": [ "es2015" ],
+      "plugins": [
+        "add-module-exports"
+      ]
+    },
+    "es": {
+      "presets": [ "./babel/preset" ]
+    }
+  }
+}

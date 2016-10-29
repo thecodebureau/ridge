@@ -1,16 +1,15 @@
-'use strict';
+import View from '../view';
 
-var View = require('../view');
-
-module.exports = View.extend({
+export default View.extend({
   tagName: 'section',
 
   className: 'page',
 
-  constructor: function (options) {
-    if (!this.template)
+  constructor(options) {
+    if (!this.template) {
       this.template = options.template || options.state && options.state.get('page').template;
+    }
 
     View.call(this, options);
-  }
+  },
 });

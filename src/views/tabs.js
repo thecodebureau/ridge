@@ -1,19 +1,19 @@
-'use strict';
+import View from '../view';
 
-module.exports = require('../view').extend({
+export default View.extend({
   events: {
-    'click button': 'toggle'
+    'click button': 'toggle',
   },
 
   elements: {
     buttons: '.buttons > button',
-    containers: '> .container, > .field-container'
+    containers: '> .container, > .field-container',
   },
 
-  toggle: function (e) {
-    var button = e.currentTarget;
-    var index = Array.prototype.indexOf.call(button.parentNode.children, button);
+  toggle(e) {
+    const button = e.currentTarget;
+    const index = Array.prototype.indexOf.call(button.parentNode.children, button);
     this.elements.containers.addClass('hidden').eq(index).removeClass('hidden');
     this.elements.buttons.removeClass('current').eq(index).addClass('current');
-  }
+  },
 });

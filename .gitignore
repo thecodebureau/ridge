@@ -27,3 +27,13 @@ build/Release
 node_modules
 
 /dump
+
+/*.js
+
+/cjs
+
+/mixins
+
+/util
+
+/views
