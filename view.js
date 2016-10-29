@@ -38,25 +38,6 @@ function attributes(tag) {    // extract attributes from tag string
   return attrs;
 }
 
-function updateElement(html, tag, endTag, tagName) {
-  if (tag && !this.rendered) {
-    if (this.$el.is(tagName)) {
-      this.$el.attr(attributes(tag));
-    } else {
-      var old = this.$el,
-        queue = old.queue();
-      old.clearQueue();
-      this.setElement(tag + endTag);
-      old.replaceWith(this.el);
-      this.$el.queue(queue);
-    }
-  }
-  this.el.innerHTML = html;
-  this.rendered = true;
-
-  // remove old subviews
-  _.invokeMap(this.views, 'remove');
-}
 
 function createViews() {
   var self = this;
@@ -135,27 +116,12 @@ var View = Backbone.View.extend({
 
     Backbone.View.apply(this, arguments);
 
-    this.loadTemplate();
-
     if (this.rendering) return;
 
     this.rendered = (this.el && (this.el.children.length > 0 || !!this.el.textContent.trim()));
 
     if (!this.rendered) this.render();
     else this._attach();
-
-    this.ready = this.ready || $.Callbacks('once memory').fireWith(this).add;
-  },
-
-  loadTemplate: function () {
-    if(this.template && this.template.render)
-      return this;
-
-    if(_.isString(this.template) && this.templateEngine) {
-      this.template = {
-        render: _.partial(this.templateEngine.render, this.template)
-      }
-    }
   },
 
   render: function () {
@@ -163,7 +129,7 @@ var View = Backbone.View.extend({
 
     var data = _.extend({}, app.context, _.result(this.state, 'toJSON'), this.data, _.result(this.model, 'toJSON'));
 
-    this.renderTemplate(data).ready(_.filter(arguments, _.isFunction));
+    this.renderTemplate(data);
 
     return this;
   },
@@ -171,29 +137,33 @@ var View = Backbone.View.extend({
   // Render Dust template and update element, using the fx queue
 
   renderTemplate: function (data) {
-    var self = this,
-      rendering = this.Promise(function (resolve, reject) {
-        this.$el.queue(function (next, hooks) {
-          // hooks.stop() is called if queue is stopped using $el.stop() or $el.finish()
-          hooks.stop = function () {
-            reject();
-          };
+    var result = this.template(data);
 
-          self.template.render(data || {}, function (err, out) {
-            if (err)
-              reject(err);
-            else
-              parseElement(out, resolve);
-          });
-        });
-      }).done(updateElement, this._attach, function () { this.$el.dequeue(); })
-        .fail(Promise.error);
+    this.updateElement(result);
 
-    this.ready = rendering.done;
-    this.rendering = rendering;
+    this._attach();
+
+    this.rendered = true;
 
     return this;
   },
+
+  updateElement: function (newEl) {
+    if (typeof newEl === 'string') {
+      newEl = $(newEl)[0];
+    }
+
+    this.$el.empty();
+    this.$el.append(newEl.childNodes);
+
+    _.forEach(newEl.attributes, function (node) {
+      this.$el.attr(node.nodeName, node.value);
+    }.bind(this));
+
+    // remove old subviews
+    _.invokeMap(this.views, 'remove');
+  },
+
 
   _attach: function () {
     this._subviews = createViews.call(this);
